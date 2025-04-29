@@ -1,3 +1,5 @@
 {
-    "java.configuration.updateBuildConfiguration": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.home": "C:/Program Files/Eclipse Adoptium/jdk-21.0.1.12-hotspot",
+    "java.compile.nullAnalysis.mode": "automatic"
 }
