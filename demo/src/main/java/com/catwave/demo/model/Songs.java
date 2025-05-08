@@ -1,11 +1,7 @@
 package com.catwave.demo.model;
 
-import java.util.UUID;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
@@ -13,20 +9,19 @@ import jakarta.persistence.Table;
 @Table(name = "songs")
 public class Songs {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(columnDefinition = "BINARY(16)", name = "sid", unique = true, nullable = false)
-    private UUID SID;
+    @Column(name = "Sid", unique = true, nullable = false)
+    private String SID;
 
-    @Column(name = "AuID", unique = true, nullable = false)
-    private UUID AuID;
+    @Column(name = "AuID", unique = false, nullable = true)
+    private String AuID;
 
-    @Column(name = "AID", unique = true, nullable = false)
-    private UUID AID;
+    @Column(name = "AID", unique = false, nullable = true)
+    private String AID;
 
-    @Column(name = "audio_url", unique = false, nullable = false)
+    @Column(name = "audio_url", unique = false, nullable = true)
     private String audioUrl;
 
-    @Column(name = "categories", unique = true, nullable = true)
+    @Column(name = "categories", unique = false, nullable = true)
     private String categories;
 
     @Column(name = "Lyrics", unique = false, nullable = true)
@@ -38,27 +33,27 @@ public class Songs {
     @Column(name = "Hashtag", unique = false, nullable = true)
     private String hashtag;
 
-    public UUID getSID() {
+    public String getSID() {
         return SID;
     }
 
-    public void setSID(UUID SID) {
+    public void setSID(String SID) {
         this.SID = SID;
     }
 
-    public UUID getAuID() {
+    public String getAuID() {
         return AuID;
     }
 
-    public void setAuID(UUID AuID) {
+    public void setAuID(String AuID) {
         this.AuID = AuID;
     }
 
-    public UUID getAID() {
+    public String getAID() {
         return AID;
     }
 
-    public void setAID(UUID AID) {
+    public void setAID(String AID) {
         this.AID = AID;
     }
 

@@ -15,8 +15,8 @@ public class PlaySong {
     private UUID PID;
 
     @Id
-    @Column(columnDefinition = "BINARY(16)", name = "SID", unique = true, nullable = false)
-    private UUID SID;
+    @Column(name = "SID", unique = true, nullable = false)
+    private String SID;
 
     public UUID getPID() {
         return PID;
@@ -26,11 +26,11 @@ public class PlaySong {
         this.PID = PID;
     }
 
-    public UUID getSID() {
+    public String getSID() {
         return SID;
     }
 
-    public void setSID(UUID SID) {
+    public void setSID(String SID) {
         this.SID = SID;
     }
 

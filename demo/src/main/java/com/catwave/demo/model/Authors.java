@@ -4,8 +4,6 @@ import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
@@ -13,19 +11,29 @@ import jakarta.persistence.Table;
 @Table(name = "Authors")
 public class Authors {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(columnDefinition = "BINARY(16)", name = "AuID", unique = true, nullable = false)
-    private UUID AuID;
+    @Column(name = "AuID", unique = true, nullable = false)
+    private String AuID;
+
+    @Column(name = "SID", unique = true, nullable = true)
+    private String SID;
 
     @Column(name = "Description", unique = false, nullable = true)
     private String description;
 
-    public UUID getAuID() {
+    public String getAuID() {
         return AuID;
     }
 
-    public void setAuID(UUID auID) {
+    public void setAuID(String auID) {
         this.AuID = auID;
+    }
+
+    public String getSID() {
+        return SID;
+    }
+
+    public void setSID(String SID) {
+        this.SID = SID;
     }
 
     public String getDescription() {

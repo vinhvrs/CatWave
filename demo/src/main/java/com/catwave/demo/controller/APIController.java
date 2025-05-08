@@ -1,27 +1,35 @@
 package com.catwave.demo.controller;
 
 import com.catwave.demo.model.Member;
+import com.catwave.demo.model.Songs;
 
 import java.util.List;
 import java.util.UUID;
-
+import com.catwave.demo.repository.SongRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 
 import com.catwave.demo.repository.MemRepo;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-
-
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
 
 
 @RestController
 public class APIController {
+
+    @Autowired
+    private SongRepo songRepo;
     @Autowired
     private MemRepo memRepo;
+
+    APIController(SongRepo songRepo) {
+        this.songRepo = songRepo;
+    }
 
     @GetMapping("/api/members")
     public ResponseEntity<List<Member>> getMemeber() {
@@ -46,7 +54,7 @@ public class APIController {
 
     }
 
-    @GetMapping("/api/login")
+    @PostMapping(path = "/api/login")
     public ResponseEntity<Member> memberLogin(@RequestBody Member loginMember) {
         Member member = memRepo.findByUsername(loginMember.getUsername());
         String password = loginMember.getPassword();
@@ -112,10 +120,32 @@ public class APIController {
     @Value("${youtube.api.key}")
     private String apiKey;
 
+    @CrossOrigin(origins = "http://localhost:1212")
     @GetMapping("/api/api_key")
-    public String getKey() {
-        return apiKey;
+    public ResponseEntity<String> getKey() {
+        if (apiKey == null || apiKey.isEmpty()) {
+            return ResponseEntity.status(404).body("API key not found");
+        }
+        return ResponseEntity.ok(apiKey);
+    }
+
+    @PutMapping("api/song/insert")
+    public ResponseEntity<List<Songs>> songInsert(@RequestBody List<Songs> newSong) {
+        for (Songs song : newSong) {
+            Songs existingSong = songRepo.findBySID(song.getSID());
+            if (existingSong != null) {
+                continue;
+            }
+            songRepo.save(song);
+        }
+
+        return ResponseEntity.ok(newSong);
     }
     
+    @PutMapping("api/song/{sid}/update")
+    public String songUpdate(@PathVariable String id, @RequestBody Songs oldSong) {
+    
+        return "Song updated successfully";
+    }
 
 }

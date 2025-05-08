@@ -19,6 +19,11 @@ public class PageCotroller {
     @Autowired
     private MemRepo memRepo;
 
+    @GetMapping("/")
+    public String index() {
+        return "homepage";
+    }
+
     @GetMapping("/home")
     public String homepage() {
         return "homepage";
@@ -37,6 +42,11 @@ public class PageCotroller {
     @GetMapping("/demo")
     public String demo() {
         return "demo";
+    }
+
+    @GetMapping("/testPlayer")
+    public String testPlayer() {
+        return "testPlayer";
     }
     
 }

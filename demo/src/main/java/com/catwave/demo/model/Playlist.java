@@ -20,7 +20,7 @@ public class Playlist {
     @Column(name = "UID", unique = true, nullable = false)
     private UUID UID;
 
-    @Column(name = "PName", unique = true, nullable = false)
+    @Column(name = "PName", unique = false, nullable = false)
     private String PName;
 
     public UUID getPID() {
