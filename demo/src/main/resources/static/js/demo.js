@@ -1,6 +1,6 @@
 var API_KEY = "";
 const players = {};      // map videoId → YT.Player
-const queue   = [];      // queue before API ready
+const queue = [];      // queue before API ready
 
 // YouTube IFrame API ready callback
 function onYouTubeIframeAPIReady() {
@@ -12,16 +12,16 @@ function onYouTubeIframeAPIReady() {
 function _initPlayer({ elementId, videoId }) {
   players[videoId] = new YT.Player(elementId, {
     height: '180',
-    width:  '320',
+    width: '320',
     videoId: videoId,
     playerVars: {
-      controls:       0,
+      controls: 0,
       modestbranding: 1,
-      rel:            0,
+      rel: 0,
       iv_load_policy: 3
     },
     events: {
-      onReady:       event => onPlayerReady(event, videoId),
+      onReady: event => onPlayerReady(event, videoId),
       onStateChange: onPlayerStateChange
     }
   });
@@ -56,7 +56,7 @@ function onPlayerStateChange(event) {
 }
 
 // Fetch API_KEY
-onload = async function() {
+onload = async function () {
   try {
     const res = await fetch("http://127.0.0.1:1212/api/api_key");
     if (!res.ok) throw new Error("API key fetch failed");
@@ -66,24 +66,24 @@ onload = async function() {
   }
 };
 
-document.addEventListener('DOMContentLoaded', function() {
-  const form       = document.getElementById('searchForm');
-  const input      = document.getElementById('searchInput');
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('searchForm');
+  const input = document.getElementById('searchInput');
   const resultsDiv = document.getElementById('results');
 
-  let currentQuery  = "";
+  let currentQuery = "";
   let nextPageToken = "";
-  let totalLoaded   = 0;
-  const maxItems    = 50;
-  const pageSize    = 10;
-  let isLoading     = false;
+  let totalLoaded = 0;
+  const maxItems = 50;
+  const pageSize = 10;
+  let isLoading = false;
 
   form.addEventListener('submit', e => {
     e.preventDefault();
     resultsDiv.innerHTML = "";
-    currentQuery  = input.value.trim();
+    currentQuery = input.value.trim();
     nextPageToken = "";
-    totalLoaded   = 0;
+    totalLoaded = 0;
     if (currentQuery) searchYouTube(currentQuery);
   });
 
@@ -92,20 +92,27 @@ document.addEventListener('DOMContentLoaded', function() {
     isLoading = true;
 
     const url = new URL("https://www.googleapis.com/youtube/v3/search");
-    url.searchParams.set("part",       "snippet");
-    url.searchParams.set("type",       "video");
+    url.searchParams.set("part", "snippet");
+    url.searchParams.set("type", "video");
     url.searchParams.set("maxResults", pageSize);
     url.searchParams.set("videoEmbeddable", "true");
-    url.searchParams.set("q",          query);
-    url.searchParams.set("key",        API_KEY);
+    url.searchParams.set("q", query);
+    url.searchParams.set("key", API_KEY);
     if (nextPageToken) url.searchParams.set("pageToken", nextPageToken);
 
     try {
-      const res  = await fetch(url);
+      const res = await fetch(url);
       const data = await res.json();
-      if (data.items?.length) {
-        insertVideosSmartly(data.items);
-        storeSong(data.items);
+      // 1) Filter out non-video results
+      const items = (data.items || [])
+        .filter(item => item.id.kind === "youtube#video");
+
+      // 2) Only proceed if we actually got some
+      if (items.length > 0) {
+        insertVideosSmartly(items);
+        storeSong(items);
+
+        // 3) Pull the nextPageToken from the original data
         nextPageToken = data.nextPageToken || "";
       }
     } catch (err) {
@@ -120,8 +127,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function loadNext() {
       if (idx >= items.length || totalLoaded >= maxItems) return;
-      const item  = items[idx++];
-      const vid   = item.id.videoId;
+      const item = items[idx++];
+      const vid = item.id.videoId;
       const title = item.snippet.title;
 
       // container with unique ID
@@ -153,18 +160,18 @@ document.addEventListener('DOMContentLoaded', function() {
       // instantiate or queue the player
       const cfg = { elementId: ph.id, videoId: vid };
       if (window.YT && YT.Player) _initPlayer(cfg);
-      else                          queue.push(cfg);
+      else queue.push(cfg);
 
       // wire play/pause/mute
       controls.addEventListener('click', e => {
-        const btn    = e.target;
+        const btn = e.target;
         const action = btn.getAttribute('data-action');
-        const id     = btn.getAttribute('data-vid');
-        const pl     = players[id];
+        const id = btn.getAttribute('data-vid');
+        const pl = players[id];
         if (!pl) return;
-        if (action === 'play')  pl.playVideo();
+        if (action === 'play') pl.playVideo();
         if (action === 'pause') pl.pauseVideo();
-        if (action === 'mute')  pl.isMuted() ? pl.unMute() : pl.mute();
+        if (action === 'mute') pl.isMuted() ? pl.unMute() : pl.mute();
       });
 
       totalLoaded++;
@@ -176,38 +183,40 @@ document.addEventListener('DOMContentLoaded', function() {
     loadNext();
   }
 
-  function storeSong(items){
+  function storeSong(items) {
     const formattedItems = items.map(item => ({
-        SID: item.id.videoId,
-        AuID: item.snippet.channelId,
-        AID: "",
-        audioUrl: item.snippet.title,
-        categories: "",
-        lyrics: "",
-        description: item.snippet.description,
-        hashtag: ""
+      sid: item.id.videoId,
+      auID: item.snippet.channelId,
+      aid: "",
+      audioUrl: item.snippet.title,
+      categories: (item.snippet.tags || []).join(','),
+      lyrics: "",
+      description: item.snippet.description,
+      hashtag: ""
     }));
 
-    fetch("http://127.0.0.1:1212/api/song/insert", {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formattedItems),
-    })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("Failed to store songs");
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log("Songs stored successfully:", data);
-        })
-        .catch(error => {
-            console.error("Error storing songs:", error);
-        });
+    // console.log("Formatted items for storage:", formattedItems);
 
+
+    fetch("http://127.0.0.1:1212/api/song/insert", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formattedItems),
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Failed to store songs");
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log("Songs stored successfully:", data);
+      })
+      .catch(error => {
+        console.error("Error storing songs:", error);
+      });
   }
 
   window.addEventListener('scroll', () => {
@@ -219,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-function getVideoID(videoID){
-    return videoID;
+function getVideoID(videoID) {
+  return videoID;
 }
 
