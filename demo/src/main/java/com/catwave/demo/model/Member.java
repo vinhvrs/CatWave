@@ -1,8 +1,11 @@
 package com.catwave.demo.model;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.annotation.Generated;
 import jakarta.persistence.Column;
 
 
@@ -14,14 +17,16 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 public class Member {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(columnDefinition = "BINARY(16)", name = "uid", unique = true, nullable = false)
     private UUID UID;
     @Column(name = "username", unique = true, nullable = false)
     private String username;
     @Column(name = "password", nullable = false)
     private String password;
-    @Column(name = "email", unique = true, nullable = false)
+    @Column(name = "email", unique = true, nullable = true)
     private String email;
-    @Column(name = "phone", unique = true, nullable = false)
+    @Column(name = "phone", unique = false, nullable = true)
     private String phone;
 
 
