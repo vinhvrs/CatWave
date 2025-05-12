@@ -17,7 +17,7 @@ public class Playlist {
     @Column(columnDefinition = "BINARY(16)", name = "PID", unique = true, nullable = false)
     private UUID PID;
 
-    @Column(name = "UID", unique = true, nullable = false)
+    @Column(name = "UID", unique = false, nullable = false)
     private UUID UID;
 
     @Column(name = "PName", unique = false, nullable = false)

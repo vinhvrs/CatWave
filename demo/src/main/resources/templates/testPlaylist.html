@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>YouTube Playlist Showcase</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    .playlist, .user-playlists { border: 1px solid #ccc; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; }
+    .playlist h2, .user-playlists h2 { margin-top: 0; }
+    .video-container { display: inline-block; width: 320px; margin: 0.5rem; vertical-align: top; }
+    .controls button { margin-right: 0.5rem; }
+    .seek-bar { width: 100%; margin-top: 0.5rem; }
+    .user-playlists button { display: block; width: 100%; margin: 0.25rem 0; padding: 0.5rem; font-size: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>YouTube Playlist Showcase</h1>
+
+  <!-- Section: User's playlists from DB -->
+  <div class="user-playlists" id="userPlaylists">
+    <h2>Your Playlists</h2>
+    <!-- buttons will be injected here -->
+  </div>
+
+  <!-- Container for selected playlist videos -->
+  <div id="playlists"></div>
+
+  <!-- load YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <!-- custom script -->
+  <script src="/js/testPlaylist.js"></script>
+</body>
+</html>

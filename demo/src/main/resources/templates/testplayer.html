@@ -1,140 +1,24 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>YouTube Music Search</title>
-    <style>
-        iframe {
-            width: 200px;
-            height: 50px;
-            opacity: 0.01; /* nearly invisible */
-            pointer-events: none; /* disable clicks */
-        }
-        .music-container {
-            margin-bottom: 20px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>YouTube Album Showcase</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    .album { border: 1px solid #ccc; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; }
+    .album h2 { margin-top: 0; }
+    .video-container { display: inline-block; width: 320px; margin: 0.5rem; vertical-align: top; }
+    .controls button { margin-right: 0.5rem; }
+    .seek-bar { width: 100%; margin-top: 0.5rem; }
+  </style>
 </head>
 <body>
-    <h2>YouTube Search</h2>
-    <form id="searchForm">
-        <input type="text" id="searchInput" placeholder="Search for music">
-        <button type="submit">Search</button>
-    </form>
-    <div id="results"></div>
+  <h1>YouTube Album Showcase</h1>
+  <div id="albums"></div>
 
-    <script>
-        var API_KEY = "";
-
-onload = async function() {
-    await fetch("http://127.0.0.1:1212/api/api_key")
-        .then(response => response.ok ? response.text() : Promise.reject('API key fetch failed'))
-        .then(data => {
-            API_KEY = data.trim();
-        })
-        .catch(error => console.error(error));
-};
-
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('searchForm');
-    const input = document.getElementById('searchInput');
-    const resultsDiv = document.getElementById('results');
-
-    let currentQuery = "";
-    let nextPageToken = "";
-    let totalLoaded = 0;
-    const maxItems = 50;
-    const pageSize = 10;
-    let isLoading = false;
-
-    form.addEventListener('submit', function(event) {
-        event.preventDefault();
-        resultsDiv.innerHTML = "";
-        currentQuery = input.value.trim();
-        nextPageToken = "";
-        totalLoaded = 0;
-        if (currentQuery) {
-            searchYouTube(currentQuery);
-        }
-    });
-
-    async function searchYouTube(query) {
-        if (totalLoaded >= maxItems || isLoading) return;
-
-        isLoading = true;
-        let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=playlist&maxResults=${pageSize}&q=${encodeURIComponent(query)}&key=${API_KEY}`;
-        if (nextPageToken) {
-            url += `&pageToken=${nextPageToken}`;
-        }
-
-        try {
-            const response = await fetch(url);
-            const data = await response.json();
-
-            if (data.items && data.items.length > 0) {
-                insertVideosSmartly(data.items);
-                nextPageToken = data.nextPageToken || "";
-            }
-        } catch (error) {
-            console.error('Fetch error:', error);
-        } finally {
-            isLoading = false;
-        }
-    }
-
-    function insertVideosSmartly(items) {
-        let index = 0;
-
-        function loadNext() {
-            if (index >= items.length || totalLoaded >= maxItems) return;
-
-            const item = items[index];
-            const playlistId = item.id.playlistId;
-            const title = item.snippet.title;
-
-            const container = document.createElement('div');
-            container.classList.add('music-container');
-            container.innerHTML = `<p><strong>${title}</strong></p>`;
-
-            const iframe = document.createElement('iframe');
-            iframe.src = `https://www.youtube.com/embed/videoseries?list=${playlistId}&autoplay=1`;
-            iframe.frameBorder = "0";
-            iframe.allow = "autoplay; encrypted-media";
-            iframe.allowFullscreen = true;
-            iframe.loading = "lazy";
-
-            container.appendChild(iframe);
-            resultsDiv.appendChild(container);
-
-            iframe.addEventListener('error', async function() {
-                console.warn(`Video failed to load, removing...`);
-                resultsDiv.removeChild(container);
-                totalLoaded--;
-                if (currentQuery && totalLoaded < maxItems && !isLoading) {
-                    await searchYouTube(currentQuery);
-                }
-            });
-
-            totalLoaded++;
-            index++;
-
-            if (index < items.length && totalLoaded < maxItems) {
-                setTimeout(loadNext, 300); // gentle load
-            }
-        }
-
-        loadNext();
-    }
-
-    window.addEventListener('scroll', function() {
-        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) {
-            if (currentQuery && totalLoaded < maxItems) {
-                searchYouTube(currentQuery);
-            }
-        }
-    });
-});
-
-    </script>
+  <!-- load YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <!-- load our custom script -->
+  <script src="/js/testPlayer.js"></script>
 </body>
 </html>

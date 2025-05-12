@@ -23,6 +23,7 @@ async function checkLogin() {
       if (res.ok) {
         // on success you return the Member JSON
         const member = await res.json();
+        localStorage.setItem("uid", member.uid);
         // redirect or update UI
         window.location.href = "/home";
       } else if (res.status === 401) {
