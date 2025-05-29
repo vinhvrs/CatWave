@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <title>AuthController Full Test</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; }
+    h1 { margin-bottom: 1rem; }
+    .section { border: 1px solid #ccc; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; }
+    button { padding: 0.5rem 1rem; margin-top: 0.5rem; }
+    label { display: block; margin: 0.5rem 0; }
+    input { width: 100%; padding: 0.4rem; box-sizing: border-box; }
+    pre { background: #f4f4f4; padding: 1rem; white-space: pre-wrap; word-wrap: break-word; }
+  </style>
+</head>
+<body>
+
+  <h1>Kiểm thử AuthController</h1>
+
+  <!-- 1. Connection Info -->
+  <div class="section">
+    <h2>1. Lấy thông tin kết nối</h2>
+    <p>Gọi <code>GET /auth/connection/info</code> để nhận username &amp; password (base64).</p>
+    <button id="btnFetchInfo">Lấy thông tin kết nối</button>
+    <div id="credentials" style="display:none; margin-top:1rem;">
+      <label>
+        Username:
+        <input type="text" id="username" readonly/>
+      </label>
+      <label>
+        Password (base64):
+        <input type="text" id="password" readonly/>
+      </label>
+    </div>
+  </div>
+
+  <!-- 2. Get Token -->
+  <div class="section">
+    <h2>2. Test Get Token</h2>
+    <p>Gửi <code>POST /auth/token_generate?grant_type=client_credentials</code> với header <code>Authorization: Basic …</code></p>
+    <button id="btnGetToken" disabled>Test Get Token của khách hàng</button>
+    <h3>Response</h3>
+    <pre id="tokenResult">–</pre>
+  </div>
+
+  <script>
+    const BASE = window.location.origin;
+    const btnInfo  = document.getElementById('btnFetchInfo');
+    const btnToken = document.getElementById('btnGetToken');
+    const userIn   = document.getElementById('username');
+    const passIn   = document.getElementById('password');
+    const credDiv  = document.getElementById('credentials');
+    const out      = document.getElementById('tokenResult');
+
+    // 1) Fetch connection info
+    btnInfo.addEventListener('click', async () => {
+      btnInfo.disabled = true;
+      out.textContent = '–';
+      try {
+        const res = await fetch(`${BASE}/auth/connection/info`);
+        if (!res.ok) throw new Error(`Status ${res.status}`);
+        const info = await res.json();
+        userIn.value = info.username;
+        passIn.value = info.password;
+        credDiv.style.display = 'block';
+        btnToken.disabled = false;
+      } catch (err) {
+        alert('Lỗi lấy thông tin kết nối:\n' + err);
+      } finally {
+        btnInfo.disabled = false;
+      }
+    });
+
+    // 2) Request token
+    btnToken.addEventListener('click', async () => {
+      btnToken.disabled = true;
+      out.textContent = 'Đang gọi…';
+      try {
+        const clientId     = userIn.value;
+        const clientSecret = passIn.value;
+        const basic        = btoa(`${clientId}:${clientSecret}`);
+
+        const resp = await fetch(
+          `${BASE}/auth/token_generate?grant_type=client_credentials`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Basic ${basic}`,
+              'Content-Type':  'application/x-www-form-urlencoded'
+            }
+          }
+        );
+
+        const ct = resp.headers.get('Content-Type') || '';
+        let body = ct.includes('application/json')
+          ? await resp.json()
+          : await resp.text();
+
+        out.textContent = JSON.stringify({
+          status: resp.status,
+          body
+        }, null, 2);
+
+      } catch (err) {
+        out.textContent = 'Error: ' + err;
+      } finally {
+        btnToken.disabled = false;
+      }
+    });
+  </script>
+
+</body>
+</html>

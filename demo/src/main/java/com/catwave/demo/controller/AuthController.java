@@ -1,19 +1,25 @@
 package com.catwave.demo.controller;
 
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.util.StringUtils;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.stereotype.Controller;
 
 import com.catwave.demo.model.Member;
+import com.catwave.demo.model.TransactionDto;
 import com.catwave.demo.repository.MemRepo;
+import com.catwave.demo.service.JwtService;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,15 +27,65 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-@Controller
+
+@RestController
+@RequestMapping("/auth")
 public class AuthController {
     @Autowired
     private MemRepo memRepo;
     @Autowired
     private OAuth2AuthorizedClientService authorizedClientService;
+    @Autowired 
+    private JwtService jwtService;
+    @Autowired 
+    private PasswordEncoder passwordEncoder;
 
+    @PostMapping("/token_generate")
+    public ResponseEntity<?> tokenGenerate(
+        @RequestHeader("Authorization") String authHeader,
+        @RequestParam("grant_type") String grantType
+    ) {
+        if (!"client_credentials".equals(grantType)) {
+            return ResponseEntity.badRequest()
+                .body(Map.of("error", "unsupported_grant_type"));
+        }
+
+        if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Basic ")) {
+            return ResponseEntity.status(401)
+                .body(Map.of("error", "invalid_client"));
+        }
+
+        // Decode Basic credentials
+        String base64Creds = authHeader.substring(6);
+        String decoded    = new String(Base64.getDecoder().decode(base64Creds), StandardCharsets.UTF_8);
+        String[] parts    = decoded.split(":", 2);
+        if (parts.length != 2) {
+            return ResponseEntity.status(401).body(Map.of("error", "invalid_client"));
+        }
+        String clientId = parts[0], clientSecret = parts[1];
+
+        // Lookup your member record by username
+        Member m = memRepo.findByUsername(clientId);
+        if (m == null || !passwordEncoder.matches(clientSecret, m.getPassword())) {
+            return ResponseEntity.status(401)
+                .body(Map.of("error", "invalid_client"));
+        }
+
+        // Issue a JWT
+        String jwt = jwtService.generateToken(clientId);
+        return ResponseEntity.ok(Map.of(
+          "access_token", jwt,
+          "token_type",   "bearer",
+          "expires_in",   String.valueOf(60 * 60)
+        ));
+    }
 
     HttpSession session;
 
@@ -63,7 +119,7 @@ public class AuthController {
         return "login";
     }
 
-    @GetMapping("auth/setCookie")
+    @GetMapping("/setCookie")
     public ResponseEntity<Map<String, String>> setCookie(@RequestBody Member memInfo, HttpServletRequest request,
             HttpServletResponse response) {
         String email = memInfo.getEmail();
@@ -88,7 +144,7 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "Cookie set successfully"));
     }
 
-    @GetMapping("auth/getCookie")
+    @GetMapping("/getCookie")
     public ResponseEntity<Map<String, String>> getCookie(HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
@@ -101,7 +157,7 @@ public class AuthController {
         return ResponseEntity.badRequest().body(Map.of("message", "No session cookie found"));
     }
 
-    @GetMapping("auth/getToken")
+    @PostMapping("/getToken")
     public ResponseEntity<Map<String, String>> getToken(
             OAuth2AuthenticationToken authentication) {
 
@@ -124,6 +180,17 @@ public class AuthController {
 
         String accessToken = client.getAccessToken().getTokenValue();
         return ResponseEntity.ok(Map.of("accessToken", accessToken));
+    }
+
+    @GetMapping("/connection/info")
+    public Map<String,String> getConnectionInfo() {
+        String username = "customer-catwave-user25309";
+        // here we’ve chosen to encode the username itself as the password:
+        String password = Base64.getEncoder().encodeToString(username.getBytes());
+        return Map.of(
+          "username", username,
+          "password", password
+        );
     }
 
 }

@@ -18,6 +18,9 @@ import com.catwave.demo.repository.SongRepo;
 
 
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 
 
@@ -265,5 +268,21 @@ public class APIController {
         playSongRepo.deleteByPIDAndSID(pid, sid);
         return ResponseEntity.ok("Song deleted from playlist successfully");
     }
+
+    @GetMapping("/api/payment/method")
+    public String getMethodName(@RequestParam String param) {
+        return new String();
+    }
+    
+    @GetMapping("/api/payment/QR")
+    public String getQR(@RequestParam String param) {
+        return new String();
+    }
+
+    @GetMapping("/api/payment/test")
+    public String testPayment(@RequestParam String param) {
+        return new String();
+    }
+    
 
 }

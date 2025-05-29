@@ -1,18 +1,10 @@
 package com.catwave.demo.controller;
-import com.catwave.demo.model.Member;
 import com.catwave.demo.repository.MemRepo;
 
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpSession;
-
-import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 
 
@@ -56,5 +48,14 @@ public class PageCotroller {
         return "testPlaylist";
     }
     
+    @GetMapping("/connection/info")
+    public String connectionInfo(){
+        return "connection";
+    }
+
+    @GetMapping("/auth_test")
+    public String authTest(){
+        return "auth_test";
+    }
     
 }
