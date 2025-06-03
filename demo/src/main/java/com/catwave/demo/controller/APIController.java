@@ -9,13 +9,12 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import com.catwave.demo.repository.MemRepo;
 import com.catwave.demo.repository.PlaySongRepo;
 import com.catwave.demo.repository.PlaylistRepo;
 import com.catwave.demo.repository.SongRepo;
-
 
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 
 @RestController
+@CrossOrigin(origins = "*") // Allow all origins for testing
 public class APIController {
 
     @Autowired
@@ -39,6 +39,8 @@ public class APIController {
     @Autowired
     private PlaySongRepo playSongRepo;
 
+    BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+
     APIController(SongRepo songRepo) {
         this.songRepo = songRepo;
     }
@@ -49,35 +51,7 @@ public class APIController {
         return ResponseEntity.ok(members);
     }
 
-    @PostMapping("/api/registation")
-    public ResponseEntity<String> memberRegister(@RequestBody Member member) {
-        if (member.getUsername() == null || member.getUsername().isEmpty()) {
-            return ResponseEntity.badRequest().body("Username is required");
-        }
-        if (member.getPassword() == null || member.getPassword().isEmpty()) {
-            return ResponseEntity.badRequest().body("Password is required");
-        }
-        String username = member.getUsername();
-        if (memRepo.findByUsername(username) != null) {
-            return ResponseEntity.badRequest().body("Username already exists");
-        }
-        memRepo.save(member);
-        return ResponseEntity.ok("Member registered successfully");
-
-    }
-
-    @PostMapping(path = "/api/login")
-    public ResponseEntity<Member> memberLogin(@RequestBody Member loginMember) {
-        Member member = memRepo.findByUsername(loginMember.getUsername());
-        String password = loginMember.getPassword();
-        if (member == null) {
-            return ResponseEntity.status(404).body(null);
-        }
-        if (!member.getPassword().equals(password)) {
-            return ResponseEntity.status(401).body(null);
-        }
-        return ResponseEntity.ok(member);
-    }
+    
 
     @GetMapping("/api/searching/{username}")
     public ResponseEntity<Member> getMemberByName(@PathVariable String username) {
@@ -97,7 +71,7 @@ public class APIController {
         return ResponseEntity.ok(member);
     }
 
-    @GetMapping("/api/member/delete/{uid}")
+    @DeleteMapping("/api/member/delete/{uid}")
     public ResponseEntity<String> deleteMember(@PathVariable UUID uid) {
         Member member = memRepo.findByUID(uid);
         if (member == null) {
@@ -107,7 +81,7 @@ public class APIController {
         return ResponseEntity.ok("Member deleted successfully");
     }
 
-    @GetMapping("/api/member/update/{uid}")
+    @PutMapping("/api/member/update/{uid}")
     public ResponseEntity<String> updateMember(@PathVariable UUID uid, @RequestBody Member updatedMember) {
         Member member = memRepo.findByUID(uid);
         if (member == null) {
@@ -132,7 +106,10 @@ public class APIController {
     @Value("${youtube.api.key}")
     private String apiKey;
 
-    @CrossOrigin(origins = "http://localhost:1212")
+    @CrossOrigin(origins = {
+        "http://localhost:1212",
+        "https://2579-171-248-117-247.ngrok-free.app"
+    })
     @GetMapping("/api/api_key")
     public ResponseEntity<String> getKey() {
         if (apiKey == null || apiKey.isEmpty()) {
@@ -267,22 +244,6 @@ public class APIController {
         }
         playSongRepo.deleteByPIDAndSID(pid, sid);
         return ResponseEntity.ok("Song deleted from playlist successfully");
-    }
-
-    @GetMapping("/api/payment/method")
-    public String getMethodName(@RequestParam String param) {
-        return new String();
-    }
-    
-    @GetMapping("/api/payment/QR")
-    public String getQR(@RequestParam String param) {
-        return new String();
-    }
-
-    @GetMapping("/api/payment/test")
-    public String testPayment(@RequestParam String param) {
-        return new String();
-    }
-    
+    }   
 
 }
