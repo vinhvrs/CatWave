@@ -36,62 +36,23 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // @Bean
-    // public JwtDecoder vietQrJwtDecoder(VietQrProperties props) {
-    // // 1) Decode the Base64 password VietQR gave you
-    // byte[] keyBytes = Base64.getDecoder().decode(props.getPassword());
-    // // 2) Build an HmacSHA512 SecretKey
-    // SecretKey key = new SecretKeySpec(keyBytes, 0, keyBytes.length,
-    // "HmacSHA512");
-
-    // // 3) Tell Nimbus to expect HS512
-    // return NimbusJwtDecoder
-    // .withSecretKey(key)
-    // .macAlgorithm(MacAlgorithm.HS512)
-    // .build();
-    // }
-
-    // @Bean
-    // public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    // http
-    // .csrf(csrf -> csrf
-    // .ignoringRequestMatchers("/vietqr/**", "/payment/**"))
-    // .authorizeHttpRequests(auth -> auth
-    // // public paths:
-    // .requestMatchers("/", "/login", "/css/**", "/js/**").permitAll()
-    // .requestMatchers("/vietqr/token").permitAll() // fetch VietQR token
-    // .requestMatchers(HttpMethod.POST, "/payment/api/token_generate").permitAll()
-    // // protect the sync endpoint:
-    // .requestMatchers(HttpMethod.POST, "/payment/api/transactions/sync")
-    // .authenticated()
-    // .anyRequest().authenticated())
-    // .oauth2ResourceServer(oauth2 -> oauth2
-    // .jwt(Customizer.withDefaults())) // this will pick up *that* JwtDecoder bean
-    // // JWT Bearer on protected endpoints
-    // // .oauth2ResourceServer(oauth2 -> oauth2
-    // // .jwt(Customizer.withDefaults()))
-    // // .jwt(jwt -> jwt.decoder(vietQrJwtDecoder(null))))
-    // // (plus formLogin / oauth2Login if you still need them)
-    // ;
-
-    // return http.build();
-    // }
-
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
             JwtDecoder vietQrJwtDecoder,
             JwtAuthenticationConverter vietQrJwtConverter) throws Exception {
 
         http
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/auth/**", "/vietqr/**", "/payment/**", "/session/**", "/demo"))
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/song", "/auth/**", "/vietqr/**", "/payment/**", "/session/**", "/demo"))
                 .authorizeHttpRequests(auth -> auth
                         // public
                         .requestMatchers("/**","/home", "/demo", "/login", "/css/**", "/js/**", "/testPayment", "/register").permitAll()
-                        .requestMatchers("/api/registation", "/api/login").permitAll()
+                        .requestMatchers("/api/auth/registration", "/api/auth/login").permitAll()
+                        .requestMatchers("/api/session/setCookie").permitAll()
+                        .requestMatchers("/api/session/getCookie").permitAll()
                         .requestMatchers("/vietqr/token").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/payment/api/token_generate").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/payment/token_generate").permitAll()
                         // the sync endpoint *must* be authenticated
-                        .requestMatchers(HttpMethod.POST, "/payment/api/transactions/sync").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/payment/transactions/sync").authenticated()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
@@ -99,9 +60,15 @@ public class SecurityConfig {
                                 .jwtAuthenticationConverter(vietQrJwtConverter) // ← and converter for authorities
                         ))
                 .formLogin(form -> form
-                        .loginPage("/login") // your GET login form endpoint
-                        // .loginProcessingUrl("/api/login") // the POST action
+                        .loginPage("/login") // your POST login form endpoint
+                        // .loginProcessingUrl("/api/auth/login") // your POST login form endpoint
                         .defaultSuccessUrl("/demo", true)
+                        .permitAll())
+                .logout(logout -> logout
+                        .logoutUrl("/api/auth/logout") // your logout endpoint
+                        .logoutSuccessUrl("/login?logout") // where to redirect after logout
+                        .invalidateHttpSession(true) // invalidate session
+                        .deleteCookies("JSESSIONID") // delete the session cookie
                         .permitAll())
                 .oauth2Login(oauth2 -> oauth2
                         .loginPage("/login") // Custom login page

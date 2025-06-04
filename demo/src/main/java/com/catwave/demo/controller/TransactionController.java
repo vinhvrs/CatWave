@@ -8,10 +8,9 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/transactions")
 public class TransactionController {
 
-    @PostMapping("/sync")
+    @PostMapping("/api/transactions/sync")
     public ResponseEntity<?> syncTransactions(
         @RequestBody List<TransactionDto> transactions
     ) {

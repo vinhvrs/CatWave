@@ -26,7 +26,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
-@RequestMapping("/payment")
 public class PaymentController {
     @Autowired
     private MemRepo memRepo;
@@ -35,7 +34,7 @@ public class PaymentController {
     @Autowired 
     private PasswordEncoder passwordEncoder;
 
-    @PostMapping("/api/token_generate")
+    @PostMapping("/api/payment/token_generate")
     public ResponseEntity<?> tokenGenerate(@RequestHeader("Authorization") String authHeader, @RequestParam(value="grant_type", defaultValue="client_credentials") String grantType) {
         if (!"client_credentials".equals(grantType)) {
             return ResponseEntity.badRequest()
@@ -72,7 +71,7 @@ public class PaymentController {
         ));
     }
 
-    @PostMapping("/api/transactions/sync")
+    @PostMapping("/api/payment/transactions/sync")
     public ResponseEntity<?> syncTransactions(
         @RequestBody List<TransactionDto> transactions
     ) {
@@ -85,7 +84,7 @@ public class PaymentController {
         ));
     }
 
-    @GetMapping("/connection/info")
+    @GetMapping("api/payment/connection/info")
     public Map<String,String> getConnectionInfo() {
         String username = "customer-catwave-user25309";
         String password = Base64.getEncoder().encodeToString(username.getBytes());

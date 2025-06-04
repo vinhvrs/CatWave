@@ -36,7 +36,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
-@RequestMapping("/auth")
 public class AuthController {
     @Autowired
     private MemRepo memRepo;
@@ -47,7 +46,10 @@ public class AuthController {
     @Autowired 
     private PasswordEncoder passwordEncoder;
 
-    @PostMapping("/token_generate")
+        HttpSession session;
+
+
+    @PostMapping("/api/auth/token_generate")
     public ResponseEntity<?> tokenGenerate(
         @RequestHeader("Authorization") String authHeader,
         @RequestParam("grant_type") String grantType
@@ -87,9 +89,59 @@ public class AuthController {
         ));
     }
 
-    HttpSession session;
+    @PostMapping("/api/auth/registration")
+    public ResponseEntity<String> memberRegister(@RequestBody Member member) {
+        if (member.getUsername() == null || member.getUsername().isEmpty()) {
+            return ResponseEntity.badRequest().body("Username is required");
+        }
+        if (member.getPassword() == null || member.getPassword().isEmpty()) {
+            return ResponseEntity.badRequest().body("Password is required");
+        }
+        String username = member.getUsername();
+        if (memRepo.findByUsername(username) != null) {
+            return ResponseEntity.badRequest().body("Username already exists");
+        }
 
-    @GetMapping("/oauth2")
+        String encodePassword = passwordEncoder.encode(member.getPassword());
+        member.setPassword(encodePassword);
+        memRepo.save(member);
+        return ResponseEntity.ok("Member registered successfully");
+
+    }
+
+    @PostMapping("/api/auth/login")
+    public ResponseEntity<Member> memberLogin(@RequestBody Member loginMember) {
+        Member member = memRepo.findByUsername(loginMember.getUsername());
+        String password = loginMember.getPassword();
+        if (member == null) {
+            return ResponseEntity.status(404).body(null);
+        }
+        if (!passwordEncoder.matches(password, member.getPassword())) {
+            return ResponseEntity.status(401).body(null);
+        }
+        return ResponseEntity.ok(member);
+    }
+
+    @GetMapping("/api/auth/logout")
+    public ResponseEntity<String> logout(HttpServletRequest request, HttpServletResponse response) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+
+        Cookie cookie = new Cookie("JSESSIONID", null);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        response.addCookie(cookie);
+
+        return ResponseEntity.ok("Logged out successfully");
+    }
+    
+
+
+    @GetMapping("/api/auth/oauth2")
     public String home(Member member, OAuth2AuthenticationToken authentication, HttpSession session) {
         OAuth2User user = authentication.getPrincipal();
         String name = user.getAttribute("name");
@@ -116,48 +168,12 @@ public class AuthController {
         session.setAttribute("uid", uid);
         session.setMaxInactiveInterval(3600); // 1 hour
 
-        return "login";
+        return "home";
     }
 
-    @GetMapping("/setCookie")
-    public ResponseEntity<Map<String, String>> setCookie(@RequestBody Member memInfo, HttpServletRequest request,
-            HttpServletResponse response) {
-        String email = memInfo.getEmail();
-        String username = memInfo.getUsername();
-        UUID uid = memRepo.findUIDByUsername(username);
-        if (uid == null) {
-            return ResponseEntity.badRequest().body(Map.of("message", "User not found"));
-        }
-        session = request.getSession();
-        session.setAttribute("email", email);
-        session.setAttribute("username", username);
-        session.setAttribute("uid", uid);
-        session.setMaxInactiveInterval(60 * 60); // 1 hour
+    
 
-        Cookie cookie = new Cookie("sessionId", session.getId()); // Create a new cookie
-        cookie.setPath("/"); // Set the path for the cookie
-        cookie.setMaxAge(60 * 60); // Set the max age for the cookie (1 hour)
-        cookie.setHttpOnly(true); // Set the cookie to be HTTP only
-        cookie.setSecure(true); // Set the cookie to be secure (only sent over HTTPS)
-        response.addCookie(cookie); // Add the cookie to the response
-
-        return ResponseEntity.ok(Map.of("message", "Cookie set successfully"));
-    }
-
-    @GetMapping("/getCookie")
-    public ResponseEntity<Map<String, String>> getCookie(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if (cookie.getName().equals("sessionId")) {
-                    return ResponseEntity.ok(Map.of("sessionId", cookie.getValue()));
-                }
-            }
-        }
-        return ResponseEntity.badRequest().body(Map.of("message", "No session cookie found"));
-    }
-
-    @PostMapping("/getToken")
+    @PostMapping("/api/auth/getToken")
     public ResponseEntity<Map<String, String>> getToken(
             OAuth2AuthenticationToken authentication) {
 
@@ -182,7 +198,7 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("accessToken", accessToken));
     }
 
-    @GetMapping("/connection/info")
+    @GetMapping("/api/auth/connection/info")
     public Map<String,String> getConnectionInfo() {
         String username = "customer-catwave-user25309";
         // here we’ve chosen to encode the username itself as the password:
