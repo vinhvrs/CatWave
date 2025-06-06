@@ -1,3 +1,27 @@
+onload = async function() {
+  try {
+    await this.fetch(`/api/session/validateCookie`, {
+      method: "GET",
+      credentials: "include",
+    }).then(async (res) => {
+      if (res.ok) {
+        const data = await res.json();
+        this.localStorage.setItem("uid", data.uid);
+        this.localStorage.setItem("username", data.username);
+
+        // redirect to home if already logged in
+        window.location.href = "/home";
+      } else if (res.status === 401) {
+        console.log("No valid session cookie found, proceeding to login.");
+      }
+    });
+  }
+  catch (e) {
+    console.error("Error validating session cookie:", e);
+  }
+}
+
+
 async function checkLogin() {
   // grab the credentials
   const userLogin = document.getElementById("username").value.trim();
@@ -25,7 +49,7 @@ async function checkLogin() {
       const member = await res.json();
       localStorage.setItem("uid", member.uid);
       localStorage.setItem("username", member.username);
-      setCookie(member.uid);  // set cookie for session
+      await setCookie(member.uid);  // set cookie for session
       // redirect or update UI
       window.location.href = "/home";
     } else if (res.status === 401) {
@@ -42,39 +66,12 @@ async function checkLogin() {
   return true;  // always prevent the browser’s default form submit
 }
 
-async function setCookie(uid){
-  const res = await fetch("/api/session/setCookie",{
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify({ uid: uid })
-  });
-  if (!res.ok) throw new Error("Failed to set cookie");
-  const data = await res.json();
-  console.log("Cookie set:", data); 
-}
-
-async function fetchCurrentUser() {
-  const res = await fetch("/api/session/getCookie", {
+async function setCookie(uid) {
+  const res = await fetch(`/api/session/setCookie/${uid}`, {
     method: "GET",
-    credentials: "include"          // ← must also include cookies here
+    credentials: "include",
   });
-  if (!res.ok) {
-    console.log("No valid session, user not logged in");
-    return null;
-  }
-  return await res.json();         // maybe returns { uid, username, email, … }
+  if (!res.ok) throw new Error(res.statusText);
+  const data = await res.json();
+  console.log("Cookie set:", data);
 }
-
-onload = async () => {
-  let user = await fetchCurrentUser();
-  if (user) {
-    // user is logged in, redirect to home
-    window.location.href = "/home";
-  } else {
-    // user is not logged in, show login form
-    document.getElementById("loginForm").style.display = "block";
-  }
-  };

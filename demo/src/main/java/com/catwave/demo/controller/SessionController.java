@@ -3,11 +3,13 @@ package com.catwave.demo.controller;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.catalina.connector.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,6 +22,10 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+
 
 @RestController
 public class SessionController {
@@ -35,10 +41,9 @@ public class SessionController {
 
     
 
-    @PostMapping("/api/session/setCookie")
-    public ResponseEntity<Map<String, Object>> setCookie(@RequestBody UUID uid, HttpServletRequest request,
-            HttpServletResponse response) {
-        
+    @GetMapping("/api/session/setCookie/{uid}")
+    public ResponseEntity<Map<String, Object>> setCookie(@PathVariable UUID uid, HttpServletRequest request, HttpServletResponse response) {
+        System.out.println("Setting session cookie for UID: " + uid);
         Member memInfo = memRepo.findByUID(uid);
         if (memInfo == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "User not found"));
@@ -50,7 +55,7 @@ public class SessionController {
         session = request.getSession();
         session.setAttribute("email", email);
         session.setAttribute("username", username);
-        session.setAttribute("uid", uid);
+        session.setAttribute("uid", uid.toString());
         session.setMaxInactiveInterval(60 * 60); // 1 hour
 
         Cookie cookie = new Cookie("sessionId", session.getId()); // Create a new cookie
@@ -69,33 +74,33 @@ public class SessionController {
         ));
     }
 
-    @GetMapping("/api/session/getCookie")
-    public ResponseEntity<Map<String, Object>> getCookie(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session == null) {
-            // no session at all
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                                 .body(Map.of("error","Not logged in"));
-        }
+    @GetMapping("/api/session/validateCookie")
+    public ResponseEntity<Map<String, Object>> validateCookie(HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null){
+            for (Cookie cookie : cookies){
+                if ("sessionId".equals(cookie.getName())){
+                    String sessionId = cookie.getValue();
+                    HttpSession session = request.getSession(false);
+                    if (session != null && sessionId.equals(session.getId())){
+                        String username = (String) session.getAttribute("username");
+                        String uid = (String) session.getAttribute("uid");
 
-        // Attempt to read the stored attributes:
-        UUID uid         = (UUID)      session.getAttribute("uid");
-        String username  = (String)    session.getAttribute("username");
-        String email     = (String)    session.getAttribute("email");
-        if (uid == null) {
-            // Maybe the session is old or not our login
-            session.invalidate();
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                                 .body(Map.of("error","Invalid session"));
+                        if (username != null && uid != null) {
+                            return ResponseEntity.ok(Map.of(
+                                "message", "Session is valid",
+                                "username", username,
+                                "uid", uid
+                            ));
+                        } else {
+                            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Session attributes not found"));
+                        }
+                    }
+                }
+            }
         }
-
-        // If everything looks good, return the user’s info:
-        return ResponseEntity.ok(Map.of(
-            "uid",      uid.toString(),
-            "username", username,
-            "email",    email
-        ));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Session cookie not found or invalid"));
     }
-
+    
     
 }

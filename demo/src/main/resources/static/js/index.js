@@ -55,10 +55,28 @@ function onPlayerStateChange(event) {
   // e.g. you could update a Play/Pause icon here
 }
 
+onload = function () {
+  this.fetch(`/api/session/validateCookie`, {
+      method: "GET",
+      credentials: "include",
+    }).then((res) => {
+      if (res.ok) {
+        const data = res.json();
+        this.localStorage.setItem("uid", data.uid);
+        this.localStorage.setItem("username", data.username);
+
+        // redirect to home if already logged in
+        window.location.href = "/home";
+      } else if (res.status === 401) {
+        console.log("No valid session cookie found, proceeding to login.");
+      }
+    });
+}
+
 // Fetch API_KEY
 onload = async function () {
   try {
-    const res = await fetch("http://127.0.0.1:1212/api/api_key");
+    const res = await fetch(`http://127.0.0.1:1212/api/api_key`);
     if (!res.ok) throw new Error("API key fetch failed");
     API_KEY = (await res.text()).trim();
   } catch (e) {
@@ -91,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (isLoading || totalLoaded >= maxItems) return;
     isLoading = true;
 
-    const url = new URL("https://www.googleapis.com/youtube/v3/search");
+    const url = new URL(`https://www.googleapis.com/youtube/v3/search`);
     url.searchParams.set("part", "snippet");
     url.searchParams.set("type", "list");
     url.searchParams.set("maxResults", pageSize);
