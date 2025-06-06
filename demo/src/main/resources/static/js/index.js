@@ -55,6 +55,7 @@ function onPlayerStateChange(event) {
   // e.g. you could update a Play/Pause icon here
 }
 
+
 onload = function () {
   this.fetch(`/api/session/validateCookie`, {
       method: "GET",

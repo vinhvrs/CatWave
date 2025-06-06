@@ -63,7 +63,25 @@ async function checkLogin() {
     alert("Network or server error");
   }
 
-  return true;  // always prevent the browser’s default form submit
+  return true;
+}
+
+function GGLogin(){
+  try {
+    fetch(`/api/auth/oauth2`,{
+      method: "GET",
+      credentials: "include",
+    }).then((res) => {
+      if (res.ok) {
+        const data = res.json();
+        localStorage.setItem("uid", data.uid);
+        localStorage.setItem("username", data.username);
+        setCookie(data.uid);  // set cookie for session
+      }
+    });
+  } catch (e) {
+    console.error("Error during Google login:", e);
+  }
 }
 
 async function setCookie(uid) {

@@ -28,84 +28,93 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
+        @Value("${jwt.secret}")
+        private String jwtSecret;
 
-    @Bean
-    PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        @Bean
+        PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http,
-            JwtDecoder vietQrJwtDecoder,
-            JwtAuthenticationConverter vietQrJwtConverter) throws Exception {
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http,
+                        JwtDecoder vietQrJwtDecoder,
+                        JwtAuthenticationConverter vietQrJwtConverter) throws Exception {
 
-        http
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/song", "/auth/**", "/vietqr/**", "/payment/**", "/session/**", "/demo"))
-                .authorizeHttpRequests(auth -> auth
-                        // public
-                        .requestMatchers("/**","/home", "/demo", "/login", "/css/**", "/js/**", "/testPayment", "/register").permitAll()
-                        .requestMatchers("/api/auth/registration", "/api/auth/login").permitAll()
-                        .requestMatchers("/api/session/setCookie").permitAll()
-                        .requestMatchers("/api/session/getCookie").permitAll()
-                        .requestMatchers("/vietqr/token").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/payment/token_generate").permitAll()
-                        // the sync endpoint *must* be authenticated
-                        .requestMatchers(HttpMethod.POST, "/api/payment/transactions/sync").authenticated()
-                        .anyRequest().authenticated())
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt
-                                .decoder(vietQrJwtDecoder) // ← actual decoder bean
-                                .jwtAuthenticationConverter(vietQrJwtConverter) // ← and converter for authorities
-                        ))
-                .formLogin(form -> form
-                        .loginPage("/login") // your POST login form endpoint
-                        // .loginProcessingUrl("/api/auth/login") // your POST login form endpoint
-                        .defaultSuccessUrl("/demo", true)
-                        .permitAll())
-                .logout(logout -> logout
-                        .logoutUrl("/api/auth/logout") // your logout endpoint
-                        .logoutSuccessUrl("/login?logout") // where to redirect after logout
-                        .invalidateHttpSession(true) // invalidate session
-                        .deleteCookies("JSESSIONID") // delete the session cookie
-                        .permitAll())
-                .oauth2Login(oauth2 -> oauth2
-                        .loginPage("/login") // Custom login page
-                        .defaultSuccessUrl("/home", true)); // this is enough for standard Google OAuth2 login
+                http
+                                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**", "/song", "/auth/**", "/vietqr/**",
+                                                "/payment/**", "/session/**", "/demo"))
+                                .authorizeHttpRequests(auth -> auth
+                                                // public
+                                                .requestMatchers("/**", "/home", "/demo", "/login", "/css/**", "/js/**",
+                                                                "/testPayment", "/register")
+                                                .permitAll()
+                                                .requestMatchers("/api/auth/oauth2").permitAll()
+                                                .requestMatchers("/api/auth/registration", "/api/auth/login")
+                                                .permitAll()
+                                                .requestMatchers("/api/session/setCookie").permitAll()
+                                                .requestMatchers("/api/session/validateCookie").permitAll()
+                                                .requestMatchers("/vietqr/token").permitAll()
+                                                .requestMatchers(HttpMethod.POST, "/api/payment/token_generate")
+                                                .permitAll()
+                                                // the sync endpoint *must* be authenticated
+                                                .requestMatchers(HttpMethod.POST, "/api/payment/transactions/sync")
+                                                .authenticated()
+                                                .anyRequest().authenticated())
+                                .oauth2ResourceServer(oauth2 -> oauth2
+                                                .jwt(jwt -> jwt
+                                                                .decoder(vietQrJwtDecoder) // ← actual decoder bean
+                                                                .jwtAuthenticationConverter(vietQrJwtConverter) // ← and
+                                                                                                                // converter
+                                                                                                                // for
+                                                                                                                // authorities
+                                                ))
+                                .formLogin(form -> form
+                                                .loginPage("/login") // your POST login form endpoint
+                                                .defaultSuccessUrl("/demo", true)
+                                                .permitAll())
+                                .logout(logout -> logout
+                                                .logoutUrl("/api/auth/logout") // your logout endpoint
+                                                .logoutSuccessUrl("/login?logout") // where to redirect after logout
+                                                .invalidateHttpSession(true) // invalidate session
+                                                .deleteCookies("sessionId") // delete the session cookie
+                                                .permitAll())
+                                .oauth2Login(oauth2 -> oauth2
+                                                .loginPage("/login") // Custom login page
+                                                .defaultSuccessUrl("/api/auth/oauth2", true)
+                                                .permitAll());
+                return http.build();
+        }
 
-        return http.build();
-    }
+        @Bean
+        public JwtDecoder vietQrJwtDecoder(VietQrProperties props) {
+                // 1) take the ASCII bytes of the password, not the Base64-decoded bytes
+                byte[] keyBytes = props.getPassword().getBytes(StandardCharsets.UTF_8);
 
-    @Bean
-    public JwtDecoder vietQrJwtDecoder(VietQrProperties props) {
-        // 1) take the ASCII bytes of the password, not the Base64-decoded bytes
-        byte[] keyBytes = props.getPassword().getBytes(StandardCharsets.UTF_8);
+                // 2) build an HmacSHA512 key
+                SecretKey key = new SecretKeySpec(keyBytes, "HmacSHA512");
 
-        // 2) build an HmacSHA512 key
-        SecretKey key = new SecretKeySpec(keyBytes, "HmacSHA512");
+                // 3) tell Nimbus to expect HS512
+                return NimbusJwtDecoder
+                                .withSecretKey(key)
+                                .macAlgorithm(MacAlgorithm.HS512)
+                                .build();
+        }
 
-        // 3) tell Nimbus to expect HS512
-        return NimbusJwtDecoder
-                .withSecretKey(key)
-                .macAlgorithm(MacAlgorithm.HS512)
-                .build();
-    }
-
-    @Bean
-    public JwtAuthenticationConverter vietQrJwtConverter() {
-        JwtAuthenticationConverter conv = new JwtAuthenticationConverter();
-        conv.setJwtGrantedAuthoritiesConverter(jwt -> {
-            List<String> auths = jwt.getClaimAsStringList("authorities");
-            if (auths == null) {
-                return Collections.emptyList();
-            }
-            // map each String → GrantedAuthority
-            return auths.stream()
-                    .map(role -> (GrantedAuthority) new SimpleGrantedAuthority(role))
-                    .collect(Collectors.toList());
-        });
-        return conv;
-    }
+        @Bean
+        public JwtAuthenticationConverter vietQrJwtConverter() {
+                JwtAuthenticationConverter conv = new JwtAuthenticationConverter();
+                conv.setJwtGrantedAuthoritiesConverter(jwt -> {
+                        List<String> auths = jwt.getClaimAsStringList("authorities");
+                        if (auths == null) {
+                                return Collections.emptyList();
+                        }
+                        // map each String → GrantedAuthority
+                        return auths.stream()
+                                        .map(role -> (GrantedAuthority) new SimpleGrantedAuthority(role))
+                                        .collect(Collectors.toList());
+                });
+                return conv;
+        }
 
 }

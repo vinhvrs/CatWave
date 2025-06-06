@@ -1,5 +1,6 @@
 package com.catwave.demo.controller;
 
+import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
@@ -7,19 +8,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.catalina.connector.Response;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.StringUtils;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.OAuth2AuthenticatedPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.stereotype.Controller;
 
 import com.catwave.demo.model.Member;
 import com.catwave.demo.model.TransactionDto;
 import com.catwave.demo.repository.MemRepo;
 import com.catwave.demo.service.JwtService;
+import com.catwave.demo.controller.SessionController;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -35,7 +42,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 
-@RestController
+@Controller
 public class AuthController {
     @Autowired
     private MemRepo memRepo;
@@ -129,7 +136,8 @@ public class AuthController {
             session.invalidate();
         }
 
-        Cookie cookie = new Cookie("JSESSIONID", null);
+        Cookie cookie = new Cookie("sessionId", null);
+        cookie.setDomain(request.getServerName());
         cookie.setPath("/");
         cookie.setMaxAge(0);
         cookie.setHttpOnly(true);
@@ -142,36 +150,73 @@ public class AuthController {
 
 
     @GetMapping("/api/auth/oauth2")
-    public String home(Member member, OAuth2AuthenticationToken authentication, HttpSession session) {
+    public String oauth2(OAuth2AuthenticationToken authentication,
+        HttpServletRequest request,
+        HttpServletResponse response) {
         OAuth2User user = authentication.getPrincipal();
-        String name = user.getAttribute("name");
+
+        String username = user.getAttribute("name");
         String email = user.getAttribute("email");
         String phoneString = user.getAttribute("phone");
 
-        session.setAttribute("name", name);
+        if (email == null) {
+            return "redirect:/home";
+        }
 
         Member existingMember = memRepo.findByEmail(email);
         if (existingMember != null) {
-            UUID uid = existingMember.getUID();
-            session.setAttribute("uid", uid);
-            return "login";
+            HttpSession session = request.getSession(true);
+            session.setAttribute("uid", existingMember.getUID().toString());
+            session.setAttribute("username", existingMember.getUsername());
+            session.setMaxInactiveInterval(60*60);
+
+            // Create a cookie that holds the session ID
+            Cookie cookie = new Cookie("sessionId", session.getId());
+            cookie.setPath("/");               // send cookie on all paths
+            cookie.setHttpOnly(true);          // JavaScript cannot read this cookie
+            cookie.setMaxAge(60*60); // expire in 1 hour
+            response.addCookie(cookie);
+            return "redirect:/home";
         }
 
-        member.setUsername(name);
-        member.setEmail(email);
-        member.setPassword("defaultpassword");
-        member.setPhone(phoneString);
+        Member newMember = new Member();
+        newMember.setEmail(email);
+        newMember.setUsername(username != null ? username : email.split("@")[0]);
 
-        memRepo.save(member);
-        existingMember = memRepo.findByEmail(email);
-        UUID uid = existingMember.getUID();
-        session.setAttribute("uid", uid);
-        session.setMaxInactiveInterval(3600); // 1 hour
+        String randomPassword = UUID.randomUUID().toString();
+        newMember.setPassword(passwordEncoder.encode(randomPassword));
+        newMember.setPhone(phoneString);
 
-        return "home";
+        try {
+            memRepo.save(newMember);
+        } catch (DataIntegrityViolationException ex) {
+            existingMember = memRepo.findByEmail(email);
+            HttpSession session = request.getSession(true);
+            session.setAttribute("uid", existingMember.getUID().toString());
+            session.setAttribute("username", existingMember.getUsername());
+            session.setMaxInactiveInterval(60*60);
+
+            Cookie cookie = new Cookie("sessionId", session.getId());
+            cookie.setPath("/");
+            cookie.setHttpOnly(true);
+            cookie.setMaxAge(60*60);
+            response.addCookie(cookie);
+            return "redirect:/home";
+        }
+
+        HttpSession session = request.getSession(true);
+        session.setAttribute("uid", newMember.getUID().toString());
+        session.setAttribute("username", newMember.getUsername());
+        session.setMaxInactiveInterval(60*60); // 1 hour
+
+        Cookie cookie = new Cookie("sessionId", session.getId());
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(60*60);
+        response.addCookie(cookie);
+
+        return "redirect:/home";
     }
-
-    
 
     @PostMapping("/api/auth/getToken")
     public ResponseEntity<Map<String, String>> getToken(
