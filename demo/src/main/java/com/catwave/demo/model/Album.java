@@ -1,11 +1,7 @@
 package com.catwave.demo.model;
 
-import java.util.UUID;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
@@ -13,26 +9,36 @@ import jakarta.persistence.Table;
 @Table(name = "Album")
 public class Album {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(columnDefinition = "BINARY(16)", name = "AID", unique = true, nullable = false)
-    private UUID AID;
+    @Column(name = "AID", unique = true, nullable = false)
+    private String AID;
 
-    @Column(name = "AuID", unique = true, nullable = false)
-    private UUID AuID;
+    @Column(name = "SID", unique = false, nullable = true)
+    private String SID;
+
+    @Column(name = "AuID", unique = false, nullable = true)
+    private String AuID;
     
-    public UUID getAID() {
+    public String getAID() {
         return AID;
     }
 
-    public void setAID(UUID AID) {
+    public void setAID(String AID) {
         this.AID = AID;
     }
 
-    public UUID getAuID() {
+    public String getSID() {
+        return SID;
+    }
+
+    public void setSID(String SID) {
+        this.SID = SID;
+    }
+
+    public String getAuID() {
         return AuID;
     }
 
-    public void setAuID(UUID AuID) {
+    public void setAuID(String AuID) {
         this.AuID = AuID;
     }
 }

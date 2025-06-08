@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>YouTube Album Showcase</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    .album { border: 1px solid #ccc; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; }
+    .album h2 { margin-top: 0; }
+    .video-container { display: inline-block; width: 320px; margin: 0.5rem; vertical-align: top; }
+    .controls button { margin-right: 0.5rem; }
+    .seek-bar { width: 100%; margin-top: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>YouTube Album Showcase</h1>
+  <div id="albums"></div>
+
+  <!-- load YouTube IFrame API -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <!-- load our custom script -->
+  <script src="/js/testPlayer.js"></script>
+</body>
+</html>

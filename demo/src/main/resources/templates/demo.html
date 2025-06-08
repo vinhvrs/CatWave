@@ -5,7 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Insert title here</title>
-    <script type="text/javascript" src="/js/demo.js"></script>
+    <!-- <script type="text/javascript" src="/js/demo.js"></script> -->
+    <style>
+        .player-placeholder {
+          display: none;         
+        }
+        .video-container {
+          margin-bottom: 1.5em;
+        }
+        .controls button {
+          margin-right: 0.5em;
+        }
+        .controls .seek-bar {
+          width: 320px;
+          margin-top: 0.5em;
+        }
+      </style>
 </head>
 
 <body>
@@ -17,6 +32,10 @@
     </form>
 
     <div id="results"></div>
+    <!-- 1. Load the IFrame Player API asynchronously -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <!-- 2. Then your demo.js -->
+    <script type="text/javascript" src="/js/demo.js"></script>
 </body>
 
 </html>

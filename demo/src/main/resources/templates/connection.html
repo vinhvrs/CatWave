@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>CatWave Connection & Token Test</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+      line-height: 1.5;
+    }
+    h1 {
+      margin-bottom: 1rem;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      margin-top: 1rem;
+      cursor: pointer;
+    }
+    label {
+      display: block;
+      margin: 0.5rem 0;
+    }
+    input {
+      width: 100%;
+      padding: 0.4rem;
+      box-sizing: border-box;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 1rem;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      margin-top: 1rem;
+    }
+    .section {
+      border: 1px solid #ddd;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Thông tin hệ thống khởi tạo</h1>
+  <p>
+    Thông tin xác thực từ phía hệ thống bao gồm Username và Password để lấy Token  
+    (API Get Token theo Basic Authentication).
+  </p>
+
+  <div class="section">
+    <button id="btnFetchInfo">Lấy thông tin kết nối</button>
+    <div id="credentials" style="display:none; margin-top:1rem;">
+      <label>
+        Username:
+        <input type="text" id="username" readonly />
+      </label>
+      <label>
+        Mật khẩu (base64):
+        <input type="text" id="password" readonly />
+      </label>
+    </div>
+  </div>
+
+  <div class="section">
+    <button id="btnGetToken" disabled>Test Get Token của khách hàng</button>
+    <h2>Response</h2>
+    <pre id="tokenResult">–</pre>
+  </div>
+
+  <script>
+    const baseUrl      = 'https://2579-171-248-117-247.ngrok-free.app';
+    const fetchInfoBtn = document.getElementById('btnFetchInfo');
+    const getTokenBtn  = document.getElementById('btnGetToken');
+    const userInput    = document.getElementById('username');
+    const passInput    = document.getElementById('password');
+    const credBox      = document.getElementById('credentials');
+    const resultEl     = document.getElementById('tokenResult');
+
+    // 1) Fetch generated credentials
+    fetchInfoBtn.addEventListener('click', async () => {
+      fetchInfoBtn.disabled = true;
+      resultEl.textContent = '–';
+      try {
+        const res  = await fetch(`${baseUrl}/auth/connection/info`);
+        const info = await res.json();
+        userInput.value = info.username;
+        passInput.value = info.password;
+        credBox.style.display = 'block';
+        getTokenBtn.disabled = false;
+      } catch (err) {
+        alert('Không lấy được thông tin kết nối:\n' + err);
+      } finally {
+        fetchInfoBtn.disabled = false;
+      }
+    });
+
+    // 2) Request a token with client_credentials
+    getTokenBtn.addEventListener('click', async () => {
+      getTokenBtn.disabled = true;
+      resultEl.textContent = 'Đang gọi API…';
+      const clientId     = userInput.value;
+      const clientSecret = passInput.value;
+      const basicHeader  = btoa(`${clientId}:${clientSecret}`);
+
+      try {
+        const resp = await fetch(
+          `${baseUrl}/auth/token_generate?grant_type=client_credentials`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Basic ${basicHeader}`,
+              'Content-Type':  'application/x-www-form-urlencoded'
+            }
+          }
+        );
+        const body = await resp.json();
+        resultEl.textContent = JSON.stringify({
+          status: resp.status,
+          ...body
+        }, null, 2);
+      } catch (e) {
+        resultEl.textContent = 'Error: ' + e;
+      } finally {
+        getTokenBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,125 +1,234 @@
-var API_KEY="";
+var API_KEY = "";
+const players = {};      // map videoId → YT.Player
+const queue = [];      // queue before API ready
 
-onload = async function(){
-    await fetch("http://127.0.0.1:1212/api/api_key", {
-        // type: "GET",
-        // headers: {
-        //     "Content-Type": "application/json",
-        //     "Accept": "application/json"
-        // }
-    }).then(response => {
-        if (response.ok) {
-            return response.text();
-        } else {
-            throw new Error('Network response was not ok');
-        }
-    })
-    .then(data => {
-        API_KEY = data;
-    });
+// YouTube IFrame API ready callback
+function onYouTubeIframeAPIReady() {
+  queue.forEach(cfg => _initPlayer(cfg));
+  queue.length = 0;
 }
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('searchForm');
-    const input = document.getElementById('searchInput');
-    const resultsDiv = document.getElementById('results');
 
-    let currentQuery = "";
-    let nextPageToken = "";
-    let totalLoaded = 0;
-    const maxItems = 50; 
-    const pageSize = 10;
-    let isLoading = false;
+// Helper to instantiate a YT.Player with custom events
+function _initPlayer({ elementId, videoId }) {
+  players[videoId] = new YT.Player(elementId, {
+    height: '180',
+    width: '320',
+    videoId: videoId,
+    playerVars: {
+      controls: 0,
+      modestbranding: 1,
+      rel: 0,
+      iv_load_policy: 3
+    },
+    events: {
+      onReady: event => onPlayerReady(event, videoId),
+      onStateChange: onPlayerStateChange
+    }
+  });
+}
 
-    form.addEventListener('submit', function(event) {
-        event.preventDefault();
-        resultsDiv.innerHTML = "";
-        currentQuery = input.value.trim();
-        nextPageToken = "";
-        totalLoaded = 0;
-        if (currentQuery) {
-            searchYouTube(currentQuery);
-        }
-    });
+// When a player is ready, set up its seek bar
+function onPlayerReady(event, videoId) {
+  const player = event.target;
+  const container = document.getElementById(`container-${videoId}`);
+  const seekBar = container.querySelector('.seek-bar');
 
-    async function searchYouTube(query) {
-        if (totalLoaded >= maxItems || isLoading) return;
+  // once we know duration, set max
+  const duration = player.getDuration();
+  seekBar.max = Math.floor(duration);
 
-        isLoading = true;
-        let url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=playlist&maxResults=${pageSize}&q=${encodeURIComponent(query)}&key=${API_KEY}`;
-        if (nextPageToken) {
-            url += `&pageToken=${nextPageToken}`;
-        }
+  // update slider as video plays
+  setInterval(() => {
+    if (player && player.getCurrentTime) {
+      seekBar.value = Math.floor(player.getCurrentTime());
+    }
+  }, 500);
 
-        try {
-            const response = await fetch(url);
-            const data = await response.json();
+  // scrub when user drags
+  seekBar.addEventListener('input', e => {
+    player.seekTo(Number(e.target.value), true);
+  });
+}
 
-            if (data.items && data.items.length > 0) {
-                insertVideosSmartly(data.items);
-                nextPageToken = data.nextPageToken || "";
-            }
-        } catch (error) {
-            console.error('Fetch error:', error);
-        } finally {
-            isLoading = false;
-        }
+// (optional) handle state changes if you like
+function onPlayerStateChange(event) {
+  // e.g. you could update a Play/Pause icon here
+}
+
+// Fetch API_KEY
+onload = async function () {
+  try {
+    const res = await fetch("http://127.0.0.1:1212/api/api_key");
+    if (!res.ok) throw new Error("API key fetch failed");
+    API_KEY = (await res.text()).trim();
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+document.addEventListener('DOMContentLoaded', function () {
+  const form = document.getElementById('searchForm');
+  const input = document.getElementById('searchInput');
+  const resultsDiv = document.getElementById('results');
+
+  let currentQuery = "";
+  let nextPageToken = "";
+  let totalLoaded = 0;
+  const maxItems = 50;
+  const pageSize = 10;
+  let isLoading = false;
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    resultsDiv.innerHTML = "";
+    currentQuery = input.value.trim();
+    nextPageToken = "";
+    totalLoaded = 0;
+    if (currentQuery) searchYouTube(currentQuery);
+  });
+
+  async function searchYouTube(query) {
+    if (isLoading || totalLoaded >= maxItems) return;
+    isLoading = true;
+
+    const url = new URL("https://www.googleapis.com/youtube/v3/search");
+    url.searchParams.set("part", "snippet");
+    url.searchParams.set("type", "video");
+    url.searchParams.set("maxResults", pageSize);
+    url.searchParams.set("videoEmbeddable", "true");
+    url.searchParams.set("q", query);
+    url.searchParams.set("key", API_KEY);
+    if (nextPageToken) url.searchParams.set("pageToken", nextPageToken);
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      // 1) Filter out non-video results
+      const items = (data.items || [])
+        .filter(item => item.id.kind === "youtube#video");
+
+      // 2) Only proceed if we actually got some
+      if (items.length > 0) {
+        insertVideosSmartly(items);
+        storeSong(items);
+
+        // 3) Pull the nextPageToken from the original data
+        nextPageToken = data.nextPageToken || "";
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function insertVideosSmartly(items) {
+    let idx = 0;
+
+    function loadNext() {
+      if (idx >= items.length || totalLoaded >= maxItems) return;
+      const item = items[idx++];
+      const vid = item.id.videoId;
+      const title = item.snippet.title;
+
+      // container with unique ID
+      const container = document.createElement('div');
+      container.id = `container-${vid}`;
+      container.className = 'video-container';
+      container.innerHTML = `<p><strong>${title}</strong></p>`;
+
+      // hidden placeholder for YT.Player
+      const ph = document.createElement('div');
+      ph.className = 'player-placeholder';
+      ph.id = `player-${vid}`;
+      container.appendChild(ph);
+
+      // custom controls + seek bar
+      const controls = document.createElement('div');
+      controls.className = 'controls';
+      controls.innerHTML = `
+        <button data-action="play"  data-vid="${vid}">▶️ Play</button>
+        <button data-action="pause" data-vid="${vid}">⏸ Pause</button>
+        <button data-action="mute"  data-vid="${vid}">🔇 Mute</button>
+        <br/>
+        <input type="range" class="seek-bar" data-vid="${vid}" value="0" min="0" max="0">
+      `;
+      container.appendChild(controls);
+
+      resultsDiv.appendChild(container);
+
+      // instantiate or queue the player
+      const cfg = { elementId: ph.id, videoId: vid };
+      if (window.YT && YT.Player) _initPlayer(cfg);
+      else queue.push(cfg);
+
+      // wire play/pause/mute
+      controls.addEventListener('click', e => {
+        const btn = e.target;
+        const action = btn.getAttribute('data-action');
+        const id = btn.getAttribute('data-vid');
+        const pl = players[id];
+        if (!pl) return;
+        if (action === 'play') pl.playVideo();
+        if (action === 'pause') pl.pauseVideo();
+        if (action === 'mute') pl.isMuted() ? pl.unMute() : pl.mute();
+      });
+
+      totalLoaded++;
+      if (idx < items.length && totalLoaded < maxItems) {
+        setTimeout(loadNext, 300);
+      }
     }
 
-    function insertVideosSmartly(items) {
-        let index = 0;
+    loadNext();
+  }
 
-        function loadNext() {
-            if (index >= items.length || totalLoaded >= maxItems) {
-                return;
-            }
+  function storeSong(items) {
+    const formattedItems = items.map(item => ({
+      sid: item.id.videoId,
+      auID: item.snippet.channelId,
+      aid: "",
+      audioUrl: item.snippet.title,
+      categories: (item.snippet.tags || []).join(','),
+      lyrics: "",
+      description: item.snippet.description,
+      hashtag: ""
+    }));
 
-            const item = items[index];
-            const playlistId = item.id.playlistId;
-            const title = item.snippet.title;
+    // console.log("Formatted items for storage:", formattedItems);
 
-            const iframe = document.createElement('iframe');
-            iframe.width = "320";
-            iframe.height = "180";
-            iframe.src = `https://www.youtube.com/embed/videoseries?list=${playlistId}`;
-            iframe.frameBorder = "0";
-            iframe.allowFullscreen = true;
-            iframe.loading = "lazy";
 
-            const container = document.createElement('div');
-            container.style.marginBottom = '20px';
-            container.innerHTML = `<p><strong>${title}</strong></p>`;
-            container.appendChild(iframe);
-
-            resultsDiv.appendChild(container);
-
-            iframe.addEventListener('error', async function() {
-                console.warn(`Video failed to load, removing...`);
-
-                resultsDiv.removeChild(container);
-                totalLoaded--; // Adjust because this iframe failed
-
-                // Immediately fetch more to fill missing one
-                if (currentQuery && totalLoaded < maxItems && !isLoading) {
-                    await searchYouTube(currentQuery);
-                }
-            });
-
-            totalLoaded++;
-            index++;
-
-            if (index < items.length && totalLoaded < maxItems) {
-                setTimeout(loadNext, 300);
-            }
+    fetch("http://127.0.0.1:1212/api/song/insert", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formattedItems),
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error("Failed to store songs");
         }
+        return response.json();
+      })
+      .then(data => {
+        console.log("Songs stored successfully:", data);
+      })
+      .catch(error => {
+        console.error("Error storing songs:", error);
+      });
+  }
 
-        loadNext();
+  window.addEventListener('scroll', () => {
+    if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) {
+      if (!isLoading && totalLoaded < maxItems && currentQuery) {
+        searchYouTube(currentQuery);
+      }
     }
-
-    window.addEventListener('scroll', function() {
-        if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 100) {
-            if (currentQuery && totalLoaded < maxItems) {
-                searchYouTube(currentQuery);
-            }
-        }
-    });
+  });
 });
+
+function getVideoID(videoID) {
+  return videoID;
+}
+

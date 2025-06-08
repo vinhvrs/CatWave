@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <title>AuthController & PaymentController Full Test</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; }
+    h1 { margin-bottom: 1rem; }
+    .section { border: 1px solid #ccc; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; }
+    button { padding: 0.5rem 1rem; margin-top: 0.5rem; }
+    label { display: block; margin: 0.5rem 0; }
+    input, textarea { width: 100%; padding: 0.4rem; box-sizing: border-box; }
+    pre { background: #f4f4f4; padding: 1rem; white-space: pre-wrap; word-wrap: break-word; }
+    #qrImage img { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+
+  <h1>Kiểm thử PaymentController</h1>
+
+  <!-- 1. Connection Info -->
+  <div class="section">
+    <h2>1. Lấy thông tin kết nối</h2>
+    <p>Gọi <code>GET /api/payment/connection/info</code> để nhận username &amp; password (plain-text).</p>
+    <button id="btnFetchInfo">Lấy thông tin kết nối</button>
+    <div id="credentials" style="display:none; margin-top:1rem;">
+      <label>
+        Username:
+        <input type="text" id="username" readonly/>
+      </label>
+      <label>
+        Password:
+        <input type="text" id="password" readonly/>
+      </label>
+    </div>
+  </div>
+
+  <!-- 2. Get Token -->
+  <div class="section">
+    <h2>2. Test Get Token</h2>
+    <p>Gửi <code>POST /api/payment/token_generate?grant_type=client_credentials</code> với header <code>Authorization: Basic …</code></p>
+    <button id="btnGetToken" disabled>Test Get Token</button>
+    <h3>Response</h3>
+    <pre id="tokenResult">–</pre>
+  </div>
+
+  <!-- 3. Generate VietQR Code -->
+  <div class="section">
+    <h2>3. Tạo mã QR</h2>
+    <p>Gửi <code>POST /api/payment/create_qr</code> với body JSON:</p>
+    <label>
+      Order ID:
+      <input type="text" id="orderId" placeholder="Ví dụ: ORDER12345"/>
+    </label>
+    <label>
+      Amount (VND):
+      <input type="number" id="amount" placeholder="150000"/>
+    </label>
+    <label>
+      Description:
+      <input type="text" id="description" placeholder="Thanh toán đơn hàng #12345"/>
+    </label>
+    <label>
+      Return URL (tuỳ chọn):
+      <input type="text" id="returnUrl" placeholder="https://your-domain.com/payment-success"/>
+    </label>
+    <button id="btnGenQr" disabled>Tạo mã QR</button>
+    <h3>Response JSON</h3>
+    <pre id="qrResult">–</pre>
+    <div id="qrImage" style="margin-top:1rem;"></div>
+  </div>
+
+  <script>
+    const BASE      = window.location.origin;
+    const btnInfo   = document.getElementById('btnFetchInfo');
+    const btnToken  = document.getElementById('btnGetToken');
+    const btnGenQr  = document.getElementById('btnGenQr');
+    const userIn    = document.getElementById('username');
+    const passIn    = document.getElementById('password');
+    const credDiv   = document.getElementById('credentials');
+    const tokenOut  = document.getElementById('tokenResult');
+    const qrOut     = document.getElementById('qrResult');
+    const qrImgDiv  = document.getElementById('qrImage');
+
+    // 1) Fetch connection info
+    btnInfo.addEventListener('click', async () => {
+      btnInfo.disabled = true;
+      try {
+        const res = await fetch(`${BASE}/api/payment/connection/info`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const info = await res.json();
+        userIn.value = info.username;
+        passIn.value = info.password;
+        credDiv.style.display = 'block';
+        btnToken.disabled = false;
+      } catch (err) {
+        alert('Lỗi lấy thông tin kết nối:\n' + err);
+      } finally {
+        btnInfo.disabled = false;
+      }
+    });
+
+    // 2) Request token
+    btnToken.addEventListener('click', async () => {
+      btnToken.disabled = true;
+      tokenOut.textContent = 'Đang gọi…';
+      try {
+        const clientId     = userIn.value;
+        const clientSecret = passIn.value;
+        const basic        = btoa(`${clientId}:${clientSecret}`);
+
+        const resp = await fetch(
+          `${BASE}/api/token_generate?grant_type=client_credentials`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Basic ${basic}`,
+              'Content-Type':  'application/x-www-form-urlencoded'
+            }
+          }
+        );
+
+        const ct = resp.headers.get('Content-Type') || '';
+        let body = ct.includes('application/json')
+          ? await resp.json()
+          : await resp.text();
+
+        tokenOut.textContent = JSON.stringify({
+          status: resp.status,
+          body
+        }, null, 2);
+
+        // nếu thành công (200), mở khóa bước tạo QR
+        if (resp.ok) btnGenQr.disabled = false;
+      } catch (err) {
+        tokenOut.textContent = 'Error: ' + err;
+      } finally {
+        btnToken.disabled = false;
+      }
+    });
+
+    // 3) Generate QR
+    btnGenQr.addEventListener('click', async () => {
+      btnGenQr.disabled = true;
+      qrOut.textContent = 'Đang tạo QR…';
+      qrImgDiv.innerHTML = '';
+      try {
+        const payload = {
+          orderId:     document.getElementById('orderId').value,
+          amount:      Number(document.getElementById('amount').value),
+          description: document.getElementById('description').value,
+          returnUrl:   document.getElementById('returnUrl').value
+        };
+
+        const resp = await fetch(`${BASE}/api/payment/create_qr`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            credentials: 'include'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await resp.json();
+        qrOut.textContent = JSON.stringify({ status: resp.status, data }, null, 2);
+
+        // Hiển thị ảnh QR (nếu API trả base64)
+        if (data.qrCode) {
+          const img = document.createElement('img');
+          img.src = 'data:image/png;base64,' + data.qrCode;
+          qrImgDiv.appendChild(img);
+        }
+        // Hoặc hiển thị link QR nếu API trả qrLink
+        else if (data.qrLink) {
+          const img = document.createElement('img');
+          img.src = data.qrLink;
+          qrImgDiv.appendChild(img);
+        }
+      } catch (err) {
+        qrOut.textContent = 'Error: ' + err;
+      } finally {
+        btnGenQr.disabled = false;
+      }
+    });
+  </script>
+
+</body>
+</html>
