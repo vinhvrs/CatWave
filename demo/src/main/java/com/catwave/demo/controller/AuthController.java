@@ -1,32 +1,24 @@
 package com.catwave.demo.controller;
 
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.catalina.connector.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.StringUtils;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.OAuth2AuthenticatedPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Controller;
 
 import com.catwave.demo.model.Member;
-import com.catwave.demo.model.TransactionDto;
 import com.catwave.demo.repository.MemRepo;
 import com.catwave.demo.service.JwtService;
-import com.catwave.demo.controller.SessionController;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -37,10 +29,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
 
 @Controller
 public class AuthController {
@@ -56,11 +45,8 @@ public class AuthController {
         HttpSession session;
 
 
-    @PostMapping("/api/auth/token_generate")
-    public ResponseEntity<?> tokenGenerate(
-        @RequestHeader("Authorization") String authHeader,
-        @RequestParam("grant_type") String grantType
-    ) {
+    @PostMapping("/api/token_generate")
+    public ResponseEntity<?> tokenGenerate(@RequestHeader("Authorization") String authHeader, @RequestParam(value="grant_type", defaultValue="client_credentials") String grantType) {
         if (!"client_credentials".equals(grantType)) {
             return ResponseEntity.badRequest()
                 .body(Map.of("error", "unsupported_grant_type"));
@@ -94,6 +80,31 @@ public class AuthController {
           "token_type",   "bearer",
           "expires_in",   String.valueOf(60 * 60)
         ));
+    }
+
+    @PostMapping("/api/auth/getToken")
+    public ResponseEntity<Map<String, String>> getToken(
+            OAuth2AuthenticationToken authentication) {
+
+        if (authentication == null) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("message", "No authentication"));
+        }
+
+        String clientRegId = authentication.getAuthorizedClientRegistrationId();
+        String principal = authentication.getName();
+
+        OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(clientRegId, principal);
+
+        if (client == null || client.getAccessToken() == null) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("message", "No OAuth client/token"));
+        }
+
+        String accessToken = client.getAccessToken().getTokenValue();
+        return ResponseEntity.ok(Map.of("accessToken", accessToken));
     }
 
     @PostMapping("/api/auth/registration")
@@ -216,42 +227,6 @@ public class AuthController {
         response.addCookie(cookie);
 
         return "redirect:/home";
-    }
-
-    @PostMapping("/api/auth/getToken")
-    public ResponseEntity<Map<String, String>> getToken(
-            OAuth2AuthenticationToken authentication) {
-
-        if (authentication == null) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(Map.of("message", "No authentication"));
-        }
-
-        String clientRegId = authentication.getAuthorizedClientRegistrationId();
-        String principal = authentication.getName();
-
-        OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(clientRegId, principal);
-
-        if (client == null || client.getAccessToken() == null) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(Map.of("message", "No OAuth client/token"));
-        }
-
-        String accessToken = client.getAccessToken().getTokenValue();
-        return ResponseEntity.ok(Map.of("accessToken", accessToken));
-    }
-
-    @GetMapping("/api/auth/connection/info")
-    public Map<String,String> getConnectionInfo() {
-        String username = "customer-catwave-user25309";
-        // here we’ve chosen to encode the username itself as the password:
-        String password = Base64.getEncoder().encodeToString(username.getBytes());
-        return Map.of(
-          "username", username,
-          "password", password
-        );
     }
 
 }

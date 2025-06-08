@@ -25,7 +25,7 @@ public class VietQrTokenController {
         this.rest = rest;
     }
 
-    @PostMapping("/api/vietqr/token")
+    @PostMapping("/api/payment/token_generate")
     public ResponseEntity<VietQrTokenResponse> fetchToken() {
         // build “Basic ” header from raw username:password
         String creds = props.getUsername() + ":" + props.getPassword();

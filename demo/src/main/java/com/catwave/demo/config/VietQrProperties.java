@@ -9,14 +9,55 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties(prefix = "vietqr")
 public class VietQrProperties {
-    /** The Base64‐encoded username VietQR gave you. */
-    private String username;
-
-    /** The Base64‐encoded password VietQR gave you. */
+     private String username;
     private String password;
-
-    /** The URL to call to generate a VietQR access token. */
     private String tokenUrl;
+    private String createOrderUrl;
+    private String callbackUrl;
+
+    // merchant info
+    private String bankCode;
+    private String bankAccount;
+    private String userBankName;
+    public String getCreateOrderUrl() {
+        return createOrderUrl;
+    }
+
+    public void setCreateOrderUrl(String createOrderUrl) {
+        this.createOrderUrl = createOrderUrl;
+    }
+
+    public String getCallbackUrl() {
+        return callbackUrl;
+    }
+
+    public void setCallbackUrl(String callbackUrl) {
+        this.callbackUrl = callbackUrl;
+    }
+
+    public String getBankCode() {
+        return bankCode;
+    }
+
+    public void setBankCode(String bankCode) {
+        this.bankCode = bankCode;
+    }
+
+    public String getBankAccount() {
+        return bankAccount;
+    }
+
+    public void setBankAccount(String bankAccount) {
+        this.bankAccount = bankAccount;
+    }
+
+    public String getUserBankName() {
+        return userBankName;
+    }
+
+    public void setUserBankName(String userBankName) {
+        this.userBankName = userBankName;
+    }
 
     public String getUsername() {
         return username;

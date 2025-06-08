@@ -9,12 +9,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.StringUtils;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 
 import com.catwave.demo.model.Member;
 import com.catwave.demo.model.TransactionDto;
+import com.catwave.demo.model.VietQrOrderResponse;
 import com.catwave.demo.repository.MemRepo;
 import com.catwave.demo.service.JwtService;
+import com.catwave.demo.service.VietQrOrderService;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,43 +37,8 @@ public class PaymentController {
     private JwtService jwtService;
     @Autowired 
     private PasswordEncoder passwordEncoder;
-
-    @PostMapping("/api/payment/token_generate")
-    public ResponseEntity<?> tokenGenerate(@RequestHeader("Authorization") String authHeader, @RequestParam(value="grant_type", defaultValue="client_credentials") String grantType) {
-        if (!"client_credentials".equals(grantType)) {
-            return ResponseEntity.badRequest()
-                .body(Map.of("error", "unsupported_grant_type"));
-        }
-
-        if (!StringUtils.hasText(authHeader) || !authHeader.startsWith("Basic ")) {
-            return ResponseEntity.status(401)
-                .body(Map.of("error", "invalid_client"));
-        }
-
-        // Decode Basic credentials
-        String base64Creds = authHeader.substring(6);
-        String decoded    = new String(Base64.getDecoder().decode(base64Creds), StandardCharsets.UTF_8);
-        String[] parts    = decoded.split(":", 2);
-        if (parts.length != 2) {
-            return ResponseEntity.status(401).body(Map.of("error", "invalid_client"));
-        }
-        String clientId = parts[0], clientSecret = parts[1];
-
-        // Lookup your member record by username
-        Member m = memRepo.findByUsername(clientId);
-        if (m == null || !passwordEncoder.matches(clientSecret, m.getPassword())) {
-            return ResponseEntity.status(401)
-                .body(Map.of("error", "invalid_client"));
-        }
-
-        // Issue a JWT
-        String jwt = jwtService.generateToken(clientId);
-        return ResponseEntity.ok(Map.of(
-          "access_token", jwt,
-          "token_type",   "bearer",
-          "expires_in",   String.valueOf(60 * 60)
-        ));
-    }
+    @Autowired
+    private VietQrOrderService vietQrOrderService;
 
     @PostMapping("/api/payment/transactions/sync")
     public ResponseEntity<?> syncTransactions(
@@ -88,10 +57,17 @@ public class PaymentController {
     public Map<String,String> getConnectionInfo() {
         String username = "customer-catwave-user25309";
         String password = Base64.getEncoder().encodeToString(username.getBytes());
+        // String password = "Y3VzdG9tZXItY2F0d2FZS11c2VyMjUzMDk=";
         return Map.of(
           "username", username,
           "password", password
         );
+    }
+
+    @PostMapping("/api/payment/create_qr")
+    public ResponseEntity<VietQrOrderResponse> createQr(@RequestBody TransactionDto dto) throws Exception {
+        VietQrOrderResponse qr = vietQrOrderService.generateQr(dto);
+        return ResponseEntity.ok(qr);
     }
 
 }

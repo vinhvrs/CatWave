@@ -55,6 +55,7 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/session/setCookie").permitAll()
                                                 .requestMatchers("/api/session/validateCookie").permitAll()
                                                 .requestMatchers("/vietqr/token").permitAll()
+                                                .requestMatchers("/api/token_generate").permitAll()
                                                 .requestMatchers(HttpMethod.POST, "/api/payment/token_generate")
                                                 .permitAll()
                                                 // the sync endpoint *must* be authenticated
