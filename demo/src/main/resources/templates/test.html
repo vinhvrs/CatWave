@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Music Dashboard Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Google Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Inter', Arial, sans-serif;
+      background: radial-gradient(circle at 60% 20%, #222c36 45%, #0e1116 100%);
+      color: #fff;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+    /* Header */
+    .music-header {
+      display: flex;
+      align-items: center;
+      gap: 25px;
+      height: 56px;
+      padding: 0 36px 0 16px;
+      background: transparent;
+      position: relative;
+      z-index: 10;
+    }
+    .music-logo {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: bold;
+      font-size: 1.25em;
+      color: #ff3571;
+      letter-spacing: .5px;
+    }
+    .music-logo .material-icons { font-size: 25px; color: #ff3571; }
+    .music-searchbox {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      max-width: 460px;
+      height: 38px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 23px;
+      padding: 0 14px;
+      color: #bbb;
+      gap: 8px;
+    }
+    .music-searchbox .material-icons { font-size: 20px; color: #bbb; }
+    .music-searchbox input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 1em;
+      flex: 1;
+      padding: 9px 6px 9px 0;
+      font-family: inherit;
+    }
+    .music-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .music-header-actions .material-icons { color: #fff; font-size: 23px; opacity: .6; }
+    .music-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid #fff2;
+      box-shadow: 0 0 6px #fff3;
+      margin-left: 8px;
+      background: #fff;
+    }
+    .music-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    /* Category pills */
+    .music-categories {
+      display: flex;
+      gap: 14px;
+      padding: 18px 0 6px 36px;
+      flex-wrap: wrap;
+    }
+    .music-category-pill {
+      background: rgba(255,255,255,0.09);
+      color: #eee;
+      font-size: 1em;
+      border: none;
+      border-radius: 19px;
+      padding: 7px 22px;
+      margin-bottom: 5px;
+      cursor: pointer;
+      font-weight: 500;
+      outline: none;
+      transition: background 0.13s;
+      letter-spacing: 0.1px;
+    }
+    .music-category-pill:hover {
+      background: #fff2;
+      color: #fff;
+    }
+    /* Section Titles */
+    .music-section-title {
+      font-size: 2.5em;
+      font-weight: 800;
+      margin: 45px 0 25px 36px;
+      letter-spacing: -1px;
+      color: #fff;
+      text-shadow: 0 3px 20px #0008;
+    }
+    /* Video Cards */
+    .music-cards-row {
+      display: flex;
+      gap: 28px;
+      padding-left: 36px;
+      margin-bottom: 32px;
+      overflow-x: auto;
+    }
+    .music-card {
+      background: #171a20;
+      border-radius: 10px;
+      overflow: hidden;
+      width: 315px;
+      min-width: 260px;
+      box-shadow: 0 3px 16px #000a;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 6px;
+      position: relative;
+      transition: box-shadow 0.14s;
+    }
+    .music-card:hover { box-shadow: 0 8px 38px #000e; }
+    .music-card-thumb {
+      position: relative;
+      width: 100%; aspect-ratio: 16/9;
+      background: #222;
+      overflow: hidden;
+    }
+    .music-card-thumb img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      transition: transform 0.16s;
+    }
+    .music-card:hover .music-card-thumb img { transform: scale(1.04);}
+    .music-card-thumb .play-btn {
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+      width: 50px; height: 50px; background: #fff7; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff;
+      font-size: 36px;
+      cursor: pointer;
+      border: none;
+      transition: background 0.13s;
+      z-index: 2;
+    }
+    .music-card-thumb .play-btn:hover { background: #ff3571; color: #fff; }
+    .music-card-content {
+      padding: 12px 14px 15px 15px;
+      display: flex;
+      flex-direction: column;
+    }
+    .music-card-title {
+      font-size: 1.13em;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #fff;
+      text-shadow: 0 1px 10px #0003;
+    }
+    .music-card-artist {
+      color: #d2dbe7;
+      font-size: 0.97em;
+      font-weight: 400;
+      margin-bottom: 0;
+      opacity: .79;
+    }
+    .music-card-views {
+      color: #c9c9c9;
+      font-size: 0.9em;
+      margin-left: 7px;
+      opacity: .67;
+    }
+    .music-cards-row::-webkit-scrollbar { height: 6px; background: transparent;}
+    .music-cards-row::-webkit-scrollbar-thumb { background: #fff3; border-radius: 8px;}
+    /* More button */
+    .music-more-btn {
+      margin: 17px 0 0 48px;
+      background: #fff2;
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      padding: 7px 22px;
+      font-size: 1em;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.13s;
+    }
+    .music-more-btn:hover { background: #fff5; }
+    /* Player bar */
+    .music-player-bar {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      height: 56px;
+      background: #22292f;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 -1px 18px #111a;
+      z-index: 50;
+      padding: 0 24px;
+      font-size: 14px;
+      color: #fff;
+      gap: 22px;
+    }
+    .music-player-bar .material-icons {
+      color: #fff; opacity: .75; font-size: 21px; margin-right: 7px;
+      vertical-align: middle;
+    }
+    .music-player-cover {
+      width: 42px; height: 42px; border-radius: 7px; overflow: hidden; margin-right: 12px;
+    }
+    .music-player-cover img { width: 100%; height: 100%; object-fit: cover; }
+    .music-player-title {
+      font-weight: 700; font-size: 1em; margin-right: 7px;
+    }
+    .music-player-artist {
+      font-size: 0.95em; color: #d9d9d9; opacity: .78; margin-right: 8px;
+    }
+    .music-player-extra { margin-left: auto; display: flex; align-items: center; gap: 18px;}
+    @media (max-width: 900px) {
+      .music-header { flex-direction: column; align-items: flex-start; height: auto; padding: 12px; }
+      .music-searchbox { width: 100%; max-width: none; }
+      .music-categories, .music-section-title, .music-cards-row { padding-left: 10px; margin-left: 0;}
+      .music-cards-row { gap: 16px; }
+      .music-card { min-width: 210px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="music-header">
+    <div class="music-logo">
+      <span class="material-icons">music_note</span>
+      Music
+    </div>
+    <form class="music-searchbox">
+      <span class="material-icons">search</span>
+      <input type="text" placeholder="Search songs, albums, artists, podcasts" />
+    </form>
+    <div class="music-header-actions">
+      <span class="material-icons">rss_feed</span>
+      <div class="music-avatar">
+        <img src="https://randomuser.me/api/portraits/men/11.jpg" alt="avatar">
+      </div>
+    </div>
+  </div>
+  <!-- Categories -->
+  <div class="music-categories">
+    <button class="music-category-pill">Relax</button>
+    <button class="music-category-pill">Energise</button>
+    <button class="music-category-pill">Feel good</button>
+    <button class="music-category-pill">Commute</button>
+    <button class="music-category-pill">Romance</button>
+    <button class="music-category-pill">Party</button>
+    <button class="music-category-pill">Sad</button>
+    <button class="music-category-pill">Sleep</button>
+    <button class="music-category-pill">Work out</button>
+    <button class="music-category-pill">Focus</button>
+  </div>
+  <!-- Forgotten Favourites -->
+  <div class="music-section-title">Forgotten favourites</div>
+  <div class="music-cards-row">
+    <div class="music-card">
+      <div class="music-card-thumb">
+        <img src="https://img.youtube.com/vi/h7MYJghRWt0/hqdefault.jpg" alt="">
+        <button class="play-btn"><span class="material-icons">play_arrow</span></button>
+      </div>
+      <div class="music-card-content">
+        <div class="music-card-title">1-hour extended version of Time machine - mj apanay</div>
+        <div class="music-card-artist">Here with me <span class="music-card-views">68K views</span></div>
+      </div>
+    </div>
+    <div class="music-card">
+      <div class="music-card-thumb">
+        <img src="https://img.youtube.com/vi/tCebR8VY9pM/hqdefault.jpg" alt="">
+        <button class="play-btn"><span class="material-icons">play_arrow</span></button>
+      </div>
+      <div class="music-card-content">
+        <div class="music-card-title">Animal Crossing - Bubblegum K.K. [Remix]</div>
+        <div class="music-card-artist">Qumu <span class="music-card-views">6.7M views</span></div>
+      </div>
+    </div>
+    <div class="music-card">
+      <div class="music-card-thumb">
+        <img src="https://img.youtube.com/vi/41dpR1H_YbU/hqdefault.jpg" alt="">
+        <button class="play-btn"><span class="material-icons">play_arrow</span></button>
+      </div>
+      <div class="music-card-content">
+        <div class="music-card-title">Too Sweet - Hozier (Cover) by The Macarons Project [Audio]</div>
+        <div class="music-card-artist">The Macarons Project <span class="music-card-views">5.2M views</span></div>
+      </div>
+    </div>
+    <div class="music-card">
+      <div class="music-card-thumb">
+        <img src="https://img.youtube.com/vi/QZblQLhKZ1s/hqdefault.jpg" alt="">
+        <button class="play-btn"><span class="material-icons">play_arrow</span></button>
+      </div>
+      <div class="music-card-content">
+        <div class="music-card-title">Numb Little Bug 1 Hour Loop</div>
+        <div class="music-card-artist">teo qi en <span class="music-card-views">785K views</span></div>
+      </div>
+    </div>
+  </div>
+  <button class="music-more-btn">More</button>
+  <!-- Recaps -->
+  <div class="music-section-title">Recaps</div>
+  <div class="music-cards-row">
+    <div class="music-card">
+      <div class="music-card-thumb">
+        <img src="https://img.youtube.com/vi/PrZXHuK5T7w/hqdefault.jpg" alt="">
+        <button class="play-btn"><span class="material-icons">play_arrow</span></button>
+      </div>
+      <div class="music-card-content">
+        <div class="music-card-title">As the World Caves In</div>
+        <div class="music-card-artist">Sarah Cothran <span class="music-card-views">145M views</span></div>
+      </div>
+    </div>
+    <div class="music-card">
+      <div class="music-card-thumb">
+        <img src="https://img.youtube.com/vi/Cz7dP0il3v8/hqdefault.jpg" alt="">
+        <button class="play-btn"><span class="material-icons">play_arrow</span></button>
+      </div>
+      <div class="music-card-content">
+        <div class="music-card-title">Recap 2</div>
+        <div class="music-card-artist">Unknown <span class="music-card-views">3.4M views</span></div>
+      </div>
+    </div>
+  </div>
+  <!-- Music Player Bar -->
+  <div class="music-player-bar">
+    <span class="material-icons">play_arrow</span>
+    <span class="material-icons">skip_previous</span>
+    <span class="material-icons">skip_next</span>
+    <div class="music-player-cover">
+      <img src="https://img.youtube.com/vi/PrZXHuK5T7w/hqdefault.jpg" alt="">
+    </div>
+    <span class="music-player-title">As the World Caves In</span>
+    <span class="music-player-artist">Sarah Cothran</span>
+    <span>145M views · 3.4M likes</span>
+    <div class="music-player-extra">
+      <span class="material-icons">thumb_up</span>
+      <span class="material-icons">thumb_down</span>
+      <span class="material-icons">queue_music</span>
+      <span class="material-icons">volume_up</span>
+      <span class="material-icons">shuffle</span>
+      <span class="material-icons">repeat</span>
+    </div>
+  </div>
+</body>
+</html>

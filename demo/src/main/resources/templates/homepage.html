@@ -1,15 +1,19 @@
+<!-- templates/home.html -->
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Spring Boot Demo</title>
-        <link rel="stylesheet" href="/css/index.css">
-        <script type="text/javascript" src="/js/index.js"></script>
-    </head>
-    <body>
-        <p>This is a simple HTML page served by Spring Boot.</p>
-        <p>To see the demo in action, visit <a href="/demo">/demo</a>.</p>
-        <p>For more information, check the <a href="/info">/info</a> endpoint.</p>
-    </body>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Trang chủ</title>
+</head>
+<body>
+    <!-- Nhúng header -->
+    <div th:replace="~{fragments/header :: header}"></div>
+
+    <main>
+        <h2>Nội dung trang chủ</h2>
+    </main>
+
+    <!-- Nhúng footer -->
+    <div th:replace="~{fragments/footer :: footer}"></div>
+</body>
 </html>

@@ -1,0 +1,231 @@
+<header th:fragment="header" class="dashboard-header">
+  <style>
+    .dashboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 48px;
+      width: 100%;
+      background: #fff;
+      border-bottom: 1px solid #eee;
+      padding: 0 30px;
+      font-family: 'Inter', 'Arial', sans-serif;
+      box-sizing: border-box;
+      position: relative;
+      z-index: 10;
+    }
+    .header-search {
+      display: flex;
+      align-items: center;
+      flex: 1 1 0%;
+      max-width: 330px;
+      gap: 10px;
+      color: #999;
+    }
+    .header-search .material-icons {
+      font-size: 20px;
+      margin-right: 4px;
+    }
+    .header-search input {
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 15px;
+      color: #333;
+      padding: 4px 0;
+      width: 220px;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      position: relative;
+    }
+    .header-notify {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .header-notify .material-icons {
+      font-size: 27px;
+      color: #6f7b8c;
+      cursor: pointer;
+      transition: color 0.16s;
+    }
+    .header-notify .material-icons:hover {
+      color: #e94c4c;
+    }
+    .header-notify .notify-badge {
+      position: absolute;
+      top: -3px;
+      right: -6px;
+      background: #e94c4c;
+      color: #fff;
+      font-size: 12px;
+      min-width: 19px;
+      height: 19px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 6px #b632329c;
+    }
+    .header-user {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      cursor: pointer;
+      font-size: 15px;
+      position: relative;
+      user-select: none;
+    }
+    .header-user-name {
+      color: #2d3447;
+      font-weight: 600;
+      transition: color 0.18s;
+      max-width: 128px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .header-user .material-icons {
+      font-size: 17px;
+      color: #adb3b8;
+      margin-left: 2px;
+    }
+    .header-avatar {
+      width: 33px;
+      height: 33px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid #e2e2e2;
+      box-shadow: 0 2px 9px #2bbfce17;
+      background: #f9f9f9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      object-fit: cover;
+      position: relative;
+      z-index: 2;
+    }
+    .header-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    /* Dropdown menu */
+    .header-dropdown {
+      position: absolute;
+      right: 0;
+      top: 120%;
+      min-width: 155px;
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      box-shadow: 0 6px 24px #212a3320;
+      padding: 7px 0;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px) scale(0.98);
+      transition: all 0.18s cubic-bezier(.33,1.33,.38,1.15);
+      z-index: 22;
+      display: block;
+    }
+    .header-user.dropdown-open .header-dropdown {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+    .header-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 16px;
+      color: #24324d;
+      font-size: 15px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      width: 100%;
+      text-align: left;
+      transition: background 0.13s, color 0.12s;
+    }
+    .header-dropdown-item:hover {
+      background: #e9f8f7;
+      color: #10b8a5;
+    }
+    .header-dropdown-item .material-icons {
+      font-size: 20px;
+      color: #33c7cf;
+    }
+    @media (max-width: 600px) {
+      .dashboard-header { padding: 0 10px; }
+      .header-search input { width: 90px; }
+      .header-user-name { display: none; }
+      .header-dropdown { min-width: 120px; }
+    }
+  </style>
+  <!-- Search -->
+  <div class="header-search">
+    <span class="material-icons">search</span>
+    <input type="text" placeholder="Search songs, albums..." />
+  </div>
+  <!-- Actions (right) -->
+  <div class="header-actions">
+    <div class="header-notify">
+      <span class="material-icons">notifications</span>
+      <span class="notify-badge">3</span>
+    </div>
+    <div class="header-user" id="headerUser">
+      <div class="header-avatar">
+        <img src="" alt="Avatar">
+      </div>
+      <!-- Dropdown menu -->
+      <div class="header-dropdown" id="headerDropdown">
+        <button class="header-dropdown-item">
+          <span class="material-icons">person</span>
+          Profile
+        </button>
+        <button class="header-dropdown-item">
+          <span class="material-icons">settings</span>
+          Settings
+        </button>
+        <button class="header-dropdown-item">
+          <span class="material-icons">logout</span>
+          Logout
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- Google Material Icons -->
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <script>
+    // Dropdown bằng click
+    document.addEventListener('DOMContentLoaded', function() {
+      const user = document.getElementById('headerUser');
+      let opened = false;
+      function closeDropdown(e) {
+        if (!user.contains(e.target)) {
+          user.classList.remove('dropdown-open');
+          opened = false;
+          document.removeEventListener('mousedown', closeDropdown);
+        }
+      }
+      user.addEventListener('click', function(e) {
+        e.stopPropagation();
+        opened = !opened;
+        if (opened) {
+          user.classList.add('dropdown-open');
+          setTimeout(() => document.addEventListener('mousedown', closeDropdown), 10);
+        } else {
+          user.classList.remove('dropdown-open');
+          document.removeEventListener('mousedown', closeDropdown);
+        }
+      });
+    });
+  </script>
+</header>
