@@ -1,41 +1,70 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Insert title here</title>
-    <!-- <script type="text/javascript" src="/js/demo.js"></script> -->
-    <style>
-        .player-placeholder {
-          display: none;         
-        }
-        .video-container {
-          margin-bottom: 1.5em;
-        }
-        .controls button {
-          margin-right: 0.5em;
-        }
-        .controls .seek-bar {
-          width: 320px;
-          margin-top: 0.5em;
-        }
-      </style>
+  <title>CatWave - Demo Player</title>
+  <link rel="stylesheet" href="/css/index.css">
+  <style>
+    .player-placeholder {
+      display: none;
+    }
+    .video-container {
+      margin-bottom: 1.5em;
+    }
+    .controls button {
+      margin-right: 0.5em;
+    }
+    .controls .seek-bar {
+      width: 320px;
+      margin-top: 0.5em;
+    }
+  </style>
 </head>
 
 <body>
-    <h2>YouTube Search</h2>
+  <h2>CATWAVE</h2>
 
-    <form id="searchForm">
-        <input type="text" id="searchInput" placeholder="Enter song or video name..." required>
-        <button type="submit">Search</button>
-    </form>
+  <form id="searchForm">
+    <input type="text" id="searchInput" placeholder="Enter song or video name..." required>
+    <button type="submit">Search</button>
+  </form>
 
-    <div id="results"></div>
-    <!-- 1. Load the IFrame Player API asynchronously -->
-    <script src="https://www.youtube.com/iframe_api"></script>
-    <!-- 2. Then your demo.js -->
-    <script type="text/javascript" src="/js/demo.js"></script>
+  <div id="results"></div>
+
+  <!-- 1. Load the IFrame Player API asynchronously -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <!-- 2. Then your demo.js -->
+  <script type="text/javascript" src="/js/demo.js"></script>
+
+  <div class="bottom-player">
+  <div class="player-left">
+    <img src="THUMBNAIL_URL" class="player-thumbnail">
+    <div class="player-info">
+      <div class="player-title">Song Title</div>
+      <div class="player-artist">Artist Name</div>
+    </div>
+  </div>
+  <div class="player-center">
+    <div class="player-controls">
+      <button id="prev"><span>⏮️</span></button>
+      <button id="play-pause"><span>▶️</span></button>
+      <button id="next"><span>⏭️</span></button>
+      <button id="shuffle"><span>🔀</span></button>
+      <button id="repeat"><span>🔂</span></button>
+    </div>
+    <div class="player-progress">
+      <span id="current-time">0:00</span>
+      <input type="range" id="seek-bar" min="0" value="0">
+      <span id="duration">3:45</span>
+    </div>
+  </div>
+  <div class="player-right">
+    <button id="mute"><span>🔈</span></button>
+    <input type="range" id="volume-bar" min="0" max="100" value="50">
+  </div>
+</div>
+
 </body>
-
 </html>
