@@ -14,9 +14,10 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
 
 import com.catwave.demo.model.Member;
+import com.catwave.demo.model.LoginRequest;
 import com.catwave.demo.repository.MemRepo;
 import com.catwave.demo.service.JwtService;
 
@@ -25,14 +26,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
-
-@Controller
+@RestController
+@RequestMapping("/api/auth")
 public class AuthController {
+
     @Autowired
     private MemRepo memRepo;
     @Autowired
@@ -42,11 +39,11 @@ public class AuthController {
     @Autowired 
     private PasswordEncoder passwordEncoder;
 
-        HttpSession session;
+    HttpSession session;
 
-
-    @PostMapping("/api/token_generate")
-    public ResponseEntity<?> tokenGenerate(@RequestHeader("Authorization") String authHeader, @RequestParam(value="grant_type", defaultValue="client_credentials") String grantType) {
+    @PostMapping("/token_generate")
+    public ResponseEntity<?> tokenGenerate(@RequestHeader("Authorization") String authHeader, 
+                                           @RequestParam(value="grant_type", defaultValue="client_credentials") String grantType) {
         if (!"client_credentials".equals(grantType)) {
             return ResponseEntity.badRequest()
                 .body(Map.of("error", "unsupported_grant_type"));
@@ -57,23 +54,20 @@ public class AuthController {
                 .body(Map.of("error", "invalid_client"));
         }
 
-        // Decode Basic credentials
         String base64Creds = authHeader.substring(6);
         String decoded    = new String(Base64.getDecoder().decode(base64Creds), StandardCharsets.UTF_8);
         String[] parts    = decoded.split(":", 2);
         if (parts.length != 2) {
             return ResponseEntity.status(401).body(Map.of("error", "invalid_client"));
         }
-        String clientId = parts[0], clientSecret = parts[1];
 
-        // Lookup your member record by username
+        String clientId = parts[0], clientSecret = parts[1];
         Member m = memRepo.findByUsername(clientId);
         if (m == null || !passwordEncoder.matches(clientSecret, m.getPassword())) {
             return ResponseEntity.status(401)
                 .body(Map.of("error", "invalid_client"));
         }
 
-        // Issue a JWT
         String jwt = jwtService.generateToken(clientId);
         return ResponseEntity.ok(Map.of(
           "access_token", jwt,
@@ -82,32 +76,25 @@ public class AuthController {
         ));
     }
 
-    @PostMapping("/api/auth/getToken")
-    public ResponseEntity<Map<String, String>> getToken(
-            OAuth2AuthenticationToken authentication) {
-
+    @PostMapping("/getToken")
+    public ResponseEntity<Map<String, String>> getToken(OAuth2AuthenticationToken authentication) {
         if (authentication == null) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(Map.of("message", "No authentication"));
+            return ResponseEntity.badRequest().body(Map.of("message", "No authentication"));
         }
 
         String clientRegId = authentication.getAuthorizedClientRegistrationId();
         String principal = authentication.getName();
-
         OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(clientRegId, principal);
 
         if (client == null || client.getAccessToken() == null) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(Map.of("message", "No OAuth client/token"));
+            return ResponseEntity.badRequest().body(Map.of("message", "No OAuth client/token"));
         }
 
         String accessToken = client.getAccessToken().getTokenValue();
         return ResponseEntity.ok(Map.of("accessToken", accessToken));
     }
 
-    @PostMapping("/api/auth/registration")
+    @PostMapping("/registration")
     public ResponseEntity<String> memberRegister(@RequestBody Member member) {
         if (member.getUsername() == null || member.getUsername().isEmpty()) {
             return ResponseEntity.badRequest().body("Username is required");
@@ -115,32 +102,34 @@ public class AuthController {
         if (member.getPassword() == null || member.getPassword().isEmpty()) {
             return ResponseEntity.badRequest().body("Password is required");
         }
-        String username = member.getUsername();
-        if (memRepo.findByUsername(username) != null) {
+        if (memRepo.findByUsername(member.getUsername()) != null) {
             return ResponseEntity.badRequest().body("Username already exists");
         }
 
-        String encodePassword = passwordEncoder.encode(member.getPassword());
-        member.setPassword(encodePassword);
+        member.setPassword(passwordEncoder.encode(member.getPassword()));
         memRepo.save(member);
         return ResponseEntity.ok("Member registered successfully");
-
     }
 
-    @PostMapping("/api/auth/login")
-    public ResponseEntity<Member> memberLogin(@RequestBody Member loginMember) {
-        Member member = memRepo.findByUsername(loginMember.getUsername());
-        String password = loginMember.getPassword();
+    @PostMapping("/login")
+    public ResponseEntity<Member> memberLogin(@RequestBody LoginRequest loginRequest) {
+        System.out.println("🔧 [DEBUG] Login body username: " + loginRequest.getUsername());
+
+        Member member = memRepo.findByUsername(loginRequest.getUsername());
         if (member == null) {
+            System.out.println("⚠️ [WARN] Member not found.");
             return ResponseEntity.status(404).body(null);
         }
-        if (!passwordEncoder.matches(password, member.getPassword())) {
+        if (!passwordEncoder.matches(loginRequest.getPassword(), member.getPassword())) {
+            System.out.println("❌ [WARN] Invalid password.");
             return ResponseEntity.status(401).body(null);
         }
+
+        System.out.println("✅ [INFO] Login success for: " + member.getUsername());
         return ResponseEntity.ok(member);
     }
 
-    @GetMapping("/api/auth/logout")
+    @GetMapping("/logout")
     public ResponseEntity<String> logout(HttpServletRequest request, HttpServletResponse response) {
         HttpSession session = request.getSession(false);
         if (session != null) {
@@ -157,15 +146,10 @@ public class AuthController {
 
         return ResponseEntity.ok("Logged out successfully");
     }
-    
 
-
-    @GetMapping("/api/auth/oauth2")
-    public String oauth2(OAuth2AuthenticationToken authentication,
-        HttpServletRequest request,
-        HttpServletResponse response) {
+    @GetMapping("/oauth2")
+    public String oauth2(OAuth2AuthenticationToken authentication, HttpServletRequest request, HttpServletResponse response) {
         OAuth2User user = authentication.getPrincipal();
-
         String username = user.getAttribute("name");
         String email = user.getAttribute("email");
         String phoneString = user.getAttribute("phone");
@@ -181,11 +165,10 @@ public class AuthController {
             session.setAttribute("username", existingMember.getUsername());
             session.setMaxInactiveInterval(60*60);
 
-            // Create a cookie that holds the session ID
             Cookie cookie = new Cookie("sessionId", session.getId());
-            cookie.setPath("/");               // send cookie on all paths
-            cookie.setHttpOnly(true);          // JavaScript cannot read this cookie
-            cookie.setMaxAge(60*60); // expire in 1 hour
+            cookie.setPath("/");
+            cookie.setHttpOnly(true);
+            cookie.setMaxAge(60*60);
             response.addCookie(cookie);
             return "redirect:/home";
         }
@@ -193,9 +176,7 @@ public class AuthController {
         Member newMember = new Member();
         newMember.setEmail(email);
         newMember.setUsername(username != null ? username : email.split("@")[0]);
-
-        String randomPassword = UUID.randomUUID().toString();
-        newMember.setPassword(passwordEncoder.encode(randomPassword));
+        newMember.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
         newMember.setPhone(phoneString);
 
         try {
@@ -218,7 +199,7 @@ public class AuthController {
         HttpSession session = request.getSession(true);
         session.setAttribute("uid", newMember.getUID().toString());
         session.setAttribute("username", newMember.getUsername());
-        session.setMaxInactiveInterval(60*60); // 1 hour
+        session.setMaxInactiveInterval(60*60);
 
         Cookie cookie = new Cookie("sessionId", session.getId());
         cookie.setPath("/");
@@ -228,5 +209,4 @@ public class AuthController {
 
         return "redirect:/home";
     }
-
 }

@@ -29,32 +29,39 @@ public class SongsController {
     @Autowired
     private PlaySongRepo playSongRepo;
 
-        // @GetMapping("api/song/{uid}")
-    // public ResponseEntity<String> getSongByUID(@PathVariable UUID uid) {
-    //     Member member = memRepo.findByUID(uid);
-    //     if (member == null) {
-    //         return ResponseEntity.status(404).body("Member not found");
-    //     }
-    //     return ResponseEntity.ok(member.getSong());
-    // }
-
     @PutMapping("/api/song/insert")
-    public ResponseEntity<List<Songs>> songInsert(@RequestBody List<Songs> newSong) {
-        for (Songs song : newSong) {
+    public ResponseEntity<List<Songs>> songInsert(@RequestBody List<Songs> newSongs) {
+        for (Songs song : newSongs) {
             Songs existingSong = songRepo.findBySID(song.getSID());
             if (existingSong != null) {
-                continue;
+                continue; // skip if song already exists
             }
+
+            // ✅ set default thumbnailUrl if null
+            if (song.getThumbnailUrl() == null || song.getThumbnailUrl().isEmpty()) {
+                song.setThumbnailUrl("https://via.placeholder.com/150"); // default placeholder
+            }
+
+            // ✅ set default viewCount if null
+            if (song.getViewCount() == null) {
+                song.setViewCount(0);
+            }
+
             songRepo.save(song);
         }
-
-        return ResponseEntity.ok(newSong);
+        return ResponseEntity.ok(newSongs);
     }
-    
-    @PutMapping("/api/song/{sid}/update")
-    public String songUpdate(@PathVariable String id, @RequestBody Songs oldSong) {
-    
-        return "Song updated successfully";
+
+    @PutMapping("/api/song/{sid}/updateViews")
+    public ResponseEntity<String> updateSongViews(@PathVariable String sid) {
+        Songs song = songRepo.findBySID(sid);
+        if (song == null) {
+            return ResponseEntity.status(404).body("Song not found");
+        }
+        Integer currentViews = song.getViewCount() != null ? song.getViewCount() : 0;
+        song.setViewCount(currentViews + 1);
+        songRepo.save(song);
+        return ResponseEntity.ok("Song view count updated");
     }
 
     // Create new playlist
@@ -151,6 +158,14 @@ public class SongsController {
         }
         return ResponseEntity.ok(song);
     }
+
+
+    @GetMapping("/api/songs")
+    public ResponseEntity<List<Songs>> getAllSongs() {
+        List<Songs> songs = songRepo.findAll();
+        return ResponseEntity.ok(songs);
+    }
+
 
     @DeleteMapping("/api/playlists/{pid}/songs/{sid}/delete")
     public ResponseEntity<String> deleteSongFromPlaylist(@PathVariable UUID pid, @PathVariable String sid) {

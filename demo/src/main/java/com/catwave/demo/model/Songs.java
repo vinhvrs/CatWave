@@ -12,26 +12,34 @@ public class Songs {
     @Column(name = "Sid", unique = true, nullable = false)
     private String SID;
 
-    @Column(name = "AuID", unique = false, nullable = true)
+    @Column(name = "AuID")
     private String AuID;
 
-    @Column(name = "AID", unique = false, nullable = true)
+    @Column(name = "AID")
     private String AID;
 
-    @Column(name = "audio_url", unique = false, nullable = true)
+    @Column(name = "audio_url")
     private String audioUrl;
 
-    @Column(name = "categories", unique = false, nullable = true)
+    @Column(name = "categories")
     private String categories;
 
-    @Column(name = "Lyrics", unique = false, nullable = true)
+    @Column(name = "Lyrics")
     private String lyrics;
 
-    @Column(name = "Description", unique = false, nullable = true)
+    @Column(name = "Description")
     private String description;
 
-    @Column(name = "Hashtag", unique = false, nullable = true)
+    @Column(name = "Hashtag")
     private String hashtag;
+
+    @Column(name = "thumbnail_url")
+    private String thumbnailUrl;
+
+    @Column(name = "view_count")
+    private Integer viewCount;
+
+    // === GETTERS & SETTERS ===
 
     public String getSID() {
         return SID;
@@ -96,6 +104,20 @@ public class Songs {
     public void setHashtag(String hashtag) {
         this.hashtag = hashtag;
     }
-    
 
+    public String getThumbnailUrl() {
+        return thumbnailUrl;
+    }
+
+    public void setThumbnailUrl(String thumbnailUrl) {
+        this.thumbnailUrl = thumbnailUrl;
+    }
+
+    public Integer getViewCount() {
+        return viewCount;
+    }
+
+    public void setViewCount(Integer viewCount) {
+        this.viewCount = viewCount;
+    }
 }

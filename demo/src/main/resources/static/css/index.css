@@ -1,0 +1,175 @@
+body {
+  background: #121212;
+  color: #fff;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+}
+
+.song-card {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  background: #181818;
+  margin: 15px 0;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 0 5px rgba(0,0,0,0.5);
+  transition: background 0.3s;
+}
+
+.song-card:hover {
+  background: #242424;
+}
+
+.song-thumbnail {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  object-fit: cover;
+  margin-right: 15px;
+}
+
+.song-info {
+  flex: 1;
+}
+
+.song-info h3 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  color: #fff;
+}
+
+.song-info p {
+  margin: 2px 0;
+  font-size: 13px;
+  color: #bbb;
+}
+
+.song-artist {
+  font-weight: bold;
+  color: #fff;
+}
+
+.waveform {
+  display: flex;
+  align-items: flex-end;
+  height: 50px;
+  margin: 10px 0;
+  background: #222;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.wave-bar {
+  width: 2px;
+  background: #ff5500; /* SoundCloud orange */
+  margin: 0 1px;
+  border-radius: 2px;
+}
+
+.controls {
+  margin-top: 5px;
+}
+
+.controls button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  margin-right: 10px;
+  color: #ff5500; /* SoundCloud orange */
+}
+
+.controls button:hover {
+  color: #ffa64d; /* lighter orange on hover */
+}
+
+.seek-bar {
+  width: 100%;
+  margin-top: 5px;
+}
+
+
+.bottom-player {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: #181818;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 30px;
+  box-shadow: 0 -2px 5px rgba(0,0,0,0.5);
+  z-index: 1000;
+}
+
+.player-left {
+  display: flex;
+  align-items: center;
+}
+
+.player-thumbnail {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-right: 10px;
+}
+
+.player-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.player-title {
+  font-weight: bold;
+}
+
+.player-artist {
+  font-size: 12px;
+  color: #bbb;
+}
+
+.player-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.player-controls button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 18px;
+  margin: 0 5px;
+  cursor: pointer;
+}
+
+.player-progress {
+  display: flex;
+  align-items: center;
+  width: 400px;
+}
+
+.player-progress span {
+  font-size: 12px;
+  margin: 0 5px;
+}
+
+.player-progress input[type=range] {
+  flex: 1;
+}
+
+.player-right {
+  display: flex;
+  align-items: center;
+}
+
+.player-right input[type=range] {
+  width: 100px;
+  margin-left: 10px;
+}
